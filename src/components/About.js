@@ -8,7 +8,7 @@ function About() {
       <Navbar />
 
       <div className="container mx-auto px-4 pt-[90px]">
-        <section className="mb-[150px] px-2 lg:px-[90px]">
+        <section className="mb-[150px] px-2 lg:px-[12px]">
           <div className="container mx-auto">
             <h2 className="text-4xl text-center leading-10 font-extrabold text-gray-800 mb-10">
               About Wellbands

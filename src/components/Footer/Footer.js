@@ -18,7 +18,7 @@ const Footer = () => {
             <h2 className="text-xl text-center lg:text-start font-bold mb-4">
               About Wellbands
             </h2>
-            <p className="text-center lg:text-start mb-4">
+            <p className="text-center px-5 lg:px-0 lg:text-start mb-4">
               Revolutionizing health through technology, unlocking the potential
               for limitless health innovation. Discover the future of wellness
               with us.
@@ -33,7 +33,7 @@ const Footer = () => {
               <li>
                 <a
                   href="/"
-                  className="hover:text-gray-200 transition-colors duration-300"
+                  className="hover:text-blue-400  transition-colors duration-300"
                 >
                   Home
                 </a>
@@ -41,7 +41,7 @@ const Footer = () => {
               <li>
                 <a
                   href="/about"
-                  className="hover:text-gray-200 transition-colors duration-300"
+                  className="hover:text-blue-400  transition-colors duration-300"
                 >
                   About Us
                 </a>
@@ -49,7 +49,7 @@ const Footer = () => {
               <li>
                 <a
                   href="/contact"
-                  className="hover:text-gray-200 transition-colors duration-300"
+                  className="hover:text-blue-400  transition-colors duration-300"
                 >
                   Contact
                 </a>
@@ -57,7 +57,7 @@ const Footer = () => {
               <li>
                 <a
                   href="/community"
-                  className="hover:text-gray-200 transition-colors duration-300"
+                  className="hover:text-blue-400  transition-colors duration-300"
                 >
                   Community
                 </a>
@@ -107,7 +107,7 @@ const Footer = () => {
             <div className="flex justify-center lg:justify-start items-center space-x-4 mt-2">
               <a
                 href="https://www.instagram.com/wellbandshealth/"
-                className="hover:text-gray-200 transition-colors duration-300"
+                className="hover:text-blue-400  transition-colors duration-300"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -115,7 +115,7 @@ const Footer = () => {
               </a>
               <a
                 href="https://www.tiktok.com/@wellbandshealth"
-                className="hover:text-gray-200 transition-colors duration-300"
+                className="hover:text-blue-400  transition-colors duration-300"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -123,14 +123,14 @@ const Footer = () => {
               </a>
               <a
                 href="https://twitter.com/WellBandsHealth"
-                className="hover:text-gray-200 transition-colors duration-300"
+                className="hover:text-blue-400  transition-colors duration-300"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <FaTwitter />
               </a>
 
-              <span className="hover:text-gray-200 transition-colors duration-300">
+              <span className="hover:text-blue-400  transition-colors duration-300">
                 <FaYoutube />
               </span>
             </div>
