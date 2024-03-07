@@ -1,82 +1,26 @@
 import React, { useState } from "react";
 import Navbar from "./Navbar/Navbar";
 import Footer from "./Footer/Footer";
-
+import axios from "axios";
 const Community = () => {
-  const [successMessage, setSuccessMessage] = useState("");
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-  });
-  const [errors, setErrors] = useState({});
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+  const handleSubscribe = async (event) => {
+    event.preventDefault();
 
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: "" });
-    }
-  };
-
-  const validateForm = () => {
-    let formIsValid = true;
-    let errors = {};
-
-    if (!formData.name) {
-      errors.name = "Name is required.";
-      formIsValid = false;
-    }
-
-    if (!formData.email) {
-      errors.email = "Email is required.";
-      formIsValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = "Email is invalid.";
-      formIsValid = false;
-    }
-
-    setErrors(errors);
-    return formIsValid;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (validateForm()) {
-      try {
-        const response = await fetch("http://3.85.112.57:8000/docs#/users/", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-          }),
-        });
-
-        if (response.ok) {
-          const responseBody = await response.json();
-          console.log("Success:", responseBody);
-          setSuccessMessage(
-            "You have successfully subscribed to the newsletter."
-          );
-          setFormData({ name: "", email: "" });
-        } else {
-          console.error("Response not OK:", response);
-
-          setErrors({
-            ...errors,
-            submit: "Failed to subscribe. Please try again later.",
-          });
-        }
-      } catch (error) {
-        console.error("Fetch error:", error);
-        setErrors({
-          ...errors,
-          submit: "Network error. Please try again later.",
-        });
+    try {
+      const response = await axios.post("http://3.85.112.57:8000/users", {
+        username: name,
+        email: email,
+      });
+      if (response.status === 200) {
+        setMessage("Subscribed successfully!");
       }
+    } catch (error) {
+      console.error("Subscription error:", error);
+      setMessage("An error occurred. Please try again.");
     }
   };
 
@@ -92,7 +36,7 @@ const Community = () => {
             Subscribe to our newsletter for health insights and our product
             launch.
           </p>
-          <form className="flex flex-col space-y-6" onSubmit={handleSubmit}>
+          <form className="flex flex-col space-y-6" onSubmit={handleSubscribe}>
             <div className="flex flex-col">
               <label
                 htmlFor="name"
@@ -103,15 +47,11 @@ const Community = () => {
               <input
                 type="text"
                 id="name"
-                name="name"
                 placeholder="John Doe"
-                value={formData.name}
-                onChange={handleChange}
                 className="px-4 py-3 bg-gray-100 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 transition duration-300"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
               />
-              {errors.name && (
-                <p className="text-red-500 text-sm mt-1">{errors.name}</p>
-              )}
             </div>
             <div className="flex flex-col">
               <label
@@ -123,16 +63,22 @@ const Community = () => {
               <input
                 type="email"
                 id="email"
-                name="email"
                 placeholder="john@example.com"
-                value={formData.email}
-                onChange={handleChange}
                 className="px-4 py-3 bg-gray-100 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 transition duration-300"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
-              {errors.email && (
-                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-              )}
             </div>
+
+            {message && (
+              <div
+                className="p-4 mb-2 mt-8 text-sm text-green-700 text-center bg-green-100 rounded-lg dark:bg-green-200 dark:text-green-800"
+                role="alert"
+              >
+                {message}
+              </div>
+            )}
+
             <button
               type="submit"
               className="bg-blue-500 text-white font-semibold px-6 py-3 rounded-lg shadow hover:shadow-lg transition duration-300 hover:bg-blue-600"

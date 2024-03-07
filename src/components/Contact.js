@@ -1,79 +1,42 @@
 import React, { useState } from "react";
+import axios from "axios";
 import Navbar from "./Navbar/Navbar";
 import Footer from "./Footer/Footer";
 
 const Contact = () => {
   const [successMessage, setSuccessMessage] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     message: "",
   });
-  const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: "" });
-    }
   };
 
-  const validateForm = () => {
-    let formIsValid = true;
-    let errors = {};
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    try {
+      const response = await axios.post("http://3.85.112.57:8000/send-email/", {
+        name: formData.name,
+        text: formData.message,
+        sender_email: formData.email,
+        recipient: "support@wellbands.com",
+      });
 
-    if (!formData.name) {
-      errors.name = "Name is required.";
-      formIsValid = false;
-    }
-
-    if (!formData.email) {
-      errors.email = "Email is required.";
-      formIsValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = "Email is invalid.";
-      formIsValid = false;
-    }
-
-    if (!formData.message) {
-      errors.message = "Message is required.";
-      formIsValid = false;
-    }
-
-    setErrors(errors);
-    return formIsValid;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSuccessMessage("");
-    setErrorMessage("");
-
-    if (validateForm()) {
-      try {
-        const response = await fetch(
-          "http://3.85.112.57:8000/docs#/send-email/",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(formData),
-          }
-        );
-
-        if (response.ok) {
-          setSuccessMessage("Your message has been sent successfully.");
-          setFormData({ name: "", email: "", message: "" });
-        } else {
-          setErrorMessage("An error occurred. Please try again later.");
-        }
-      } catch (error) {
-        setErrorMessage("Network error. Please try again later.");
+      if (response.status === 200) {
+        setSuccessMessage("Your message has been sent successfully!");
+        setFormData({
+          name: "",
+          email: "",
+          message: "",
+        });
       }
+    } catch (error) {
+      console.error("Sending message failed:", error);
+      setSuccessMessage("Failed to send message. Please try again later.");
     }
   };
 
@@ -143,24 +106,16 @@ const Contact = () => {
                 className="w-full p-3 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
               />
             </div>
-
-            {errorMessage && (
-              <div
-                className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg dark:bg-red-200 dark:text-red-800"
-                role="alert"
-              >
-                {errorMessage}
-              </div>
-            )}
-
-            {successMessage && (
-              <div
-                className="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg dark:bg-green-200 dark:text-green-800"
-                role="alert"
-              >
-                <span className="font-medium">Success!</span> {successMessage}
-              </div>
-            )}
+            <div className="text-center">
+              {successMessage && (
+                <div
+                  className="p-4 mb-2 text-sm text-green-700 bg-green-100 rounded-lg dark:bg-green-200 dark:text-green-800"
+                  role="alert"
+                >
+                  {successMessage}
+                </div>
+              )}
+            </div>
             <button
               type="submit"
               className="w-full bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-opacity-50"
