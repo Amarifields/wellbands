@@ -19,9 +19,8 @@ const Footer = () => {
               About Wellbands
             </h2>
             <p className="text-center px-5 lg:px-0 lg:text-start mb-4">
-              Revolutionizing health through technology, unlocking the potential
-              for limitless health innovation. Discover the future of wellness
-              with us.
+              Harnessing energy fields to transform health. Empowering you to
+              detect imbalances before they become disease.
             </p>
           </div>
 
@@ -71,31 +70,17 @@ const Footer = () => {
             </h2>
             <ul className="space-y-2 text-center lg:text-start">
               <li>
-                <Link
-                  to="/faq"
-                  className="hover:text-blue-400 transition-colors duration-200"
-                  onClick={() => handleNavigation("/")}
-                >
-                  FAQ
-                </Link>
+                <span className="text-gray-500 cursor-not-allowed">FAQ</span>
               </li>
               <li>
-                <Link
-                  to="/terms"
-                  className="hover:text-blue-400 transition-colors duration-200"
-                  onClick={() => handleNavigation("/")}
-                >
+                <span className="text-gray-500 cursor-not-allowed">
                   Terms & Conditions
-                </Link>
+                </span>
               </li>
               <li>
-                <Link
-                  to="/privacy"
-                  className="hover:text-blue-400 transition-colors duration-200"
-                  onClick={() => handleNavigation("/")}
-                >
+                <span className="text-gray-500 cursor-not-allowed">
                   Privacy Policy
-                </Link>
+                </span>
               </li>
             </ul>
           </div>
