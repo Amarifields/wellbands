@@ -15,7 +15,6 @@ function Home() {
               Welcome to Wellbands
             </h1>
 
-            {/* Content */}
             <div className="">
               <p className="text-lg leading-7 text-gray-500 mb-6">
                 At Wellbands, we believe that true health is about more than
