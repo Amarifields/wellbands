@@ -1,15 +1,7 @@
 import React from "react";
 import { FaInstagram, FaTiktok, FaTwitter, FaYoutube } from "react-icons/fa";
-import { Link, useNavigate } from "react-router-dom";
 
 const Footer = () => {
-  const navigate = useNavigate();
-
-  const handleNavigation = (path) => {
-    navigate(path);
-    window.scrollTo(0, 0);
-  };
-
   return (
     <footer className="bg-gray-900 text-white">
       <div className="flex px-4 lg:px-[100px] py-12 lg:ml-[100px]">
