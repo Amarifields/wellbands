@@ -80,7 +80,7 @@ function Home() {
                 <img
                   src={dashawn}
                   alt="Dr. DaShawn Robinson"
-                  className="w-5 h-5 rounded-full !w-[20px] !h-[20px]"
+                  className="w-5 h-5 rounded-full "
                   style={{ width: "70px", height: "70px" }}
                 />
                 <div>
