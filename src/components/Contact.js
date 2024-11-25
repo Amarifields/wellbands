@@ -19,12 +19,15 @@ const Contact = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     try {
-      const response = await axios.post("http://localhost:8000/send-email/", {
-        name: formData.name,
-        text: formData.message,
-        sender_email: formData.email,
-        recipient: "support@wellbands.com",
-      });
+      const response = await axios.post(
+        "https://wellbands-backend-production.up.railway.app/send-email/",
+        {
+          name: formData.name,
+          text: formData.message,
+          sender_email: formData.email,
+          recipient: "support@wellbands.com",
+        }
+      );
 
       if (response.status === 200) {
         setSuccessMessage("Your message has been sent successfully!");
