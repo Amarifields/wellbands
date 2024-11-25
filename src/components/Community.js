@@ -11,7 +11,7 @@ const Community = () => {
     event.preventDefault();
 
     try {
-      const response = await axios.post("http://3.85.112.57:8000/users", {
+      const response = await axios.post("http://localhost:8000/users", {
         username: name,
         email: email,
       });

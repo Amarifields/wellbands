@@ -19,7 +19,7 @@ const Contact = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     try {
-      const response = await axios.post("http://3.85.112.57:8000/send-email/", {
+      const response = await axios.post("http://localhost:8000/send-email/", {
         name: formData.name,
         text: formData.message,
         sender_email: formData.email,
