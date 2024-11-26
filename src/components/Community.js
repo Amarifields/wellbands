@@ -11,10 +11,13 @@ const Community = () => {
     event.preventDefault();
 
     try {
-      const response = await axios.post("http://localhost:8000/users", {
-        username: name,
-        email: email,
-      });
+      const response = await axios.post(
+        "https://wellbands-backend.onrender.com/users",
+        {
+          username: name,
+          email: email,
+        }
+      );
       if (response.status === 200) {
         setMessage("Subscribed successfully!");
       }
