@@ -20,7 +20,7 @@ const Contact = () => {
     event.preventDefault();
     try {
       const response = await axios.post(
-        "https://wellbands-backend-production.up.railway.app/send-email/",
+        "https://wellbands-backend.onrender.com/send-email/",
         {
           name: formData.name,
           text: formData.message,
