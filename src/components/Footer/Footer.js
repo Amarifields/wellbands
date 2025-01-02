@@ -107,9 +107,14 @@ const Footer = () => {
                 <FaTwitter />
               </a>
 
-              <span className="hover:text-blue-400  transition-colors duration-300">
+              <a
+                href="https://www.youtube.com/@Wellbands"
+                className="hover:text-blue-400 transition-colors duration-300"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <FaYoutube />
-              </span>
+              </a>
             </div>
           </div>
         </div>
