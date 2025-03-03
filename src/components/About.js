@@ -45,11 +45,12 @@ function About() {
               </p>
 
               <p className="text-lg leading-7 text-gray-600 mb-6">
-                Wellbands is not just another wearable. It doesn’t reactive
-                sensors and outdated metrics. It looks deeper, using quantum
-                sensors and AI to detect early signs of health imbalances before
-                symptoms appear. This gives people the chance to act sooner and
-                take control of their well-being before problems get worse.
+                Wellbands is not just another wearable. It doesn’t rely on
+                reactive sensors and outdated metrics. It looks deeper, using
+                quantum sensors and AI to detect early signs of health
+                imbalances before symptoms appear. This gives people the chance
+                to act sooner and take control of their well-being before
+                problems get worse.
               </p>
 
               <p className="text-lg leading-7 text-gray-600 mb-6">

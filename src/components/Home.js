@@ -22,10 +22,10 @@ function Home() {
                 <p className="text-base md:text-lg leading-relaxed text-gray-500">
                   Wellbands is the first wearable that uses quantum sensors and
                   AI to monitor your health in ways no other device can. While
-                  smartwatches track heart rate and steps, Wellbands looks
-                  deeper. It detects the earliest signs of imbalances in the
-                  body before symptoms appear. This means you can take action
-                  sooner, stay healthier, and live longer.
+                  smartwatches rely on reactive sensors and outdated metrics,
+                  Wellbands looks deeper. It detects the earliest signs of
+                  imbalances in the body before symptoms appear. This means you
+                  can take action sooner, stay healthier, and live longer.
                 </p>
               </div>
 
