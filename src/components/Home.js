@@ -2,64 +2,82 @@ import React from "react";
 import Navbar from "./Navbar/Navbar";
 import Footer from "./Footer/Footer";
 import dashawn from "../assets/dashawn-logo.png";
+import { FaAtom, FaChartLine, FaRocket } from "react-icons/fa";
 
 function Home() {
   return (
-    <div className="bg-gray-100 flex flex-col min-h-screen pt-4">
+    <div className="bg-gray-100 flex flex-col min-h-screen">
       <Navbar />
 
       <main className="container mx-auto px-4 pt-[90px]">
         <section className="mb-[100px] px-2 lg:px-[12px]">
-          <h1 className="text-4xl text-center leading-10 font-extrabold text-gray-800 mb-10">
-            Welcome to Wellbands
-          </h1>
+          <div className="max-w-7xl mx-auto">
+            <div className="grid md:grid-cols-3 space-y-6 gap-6 lg:gap-8 mb-24 px-4 sm:px-6 lg:px-8">
+              {/* First Box - Exactly like the others */}
+              <div className="bg-white backdrop-blur-sm rounded-2xl p-8 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-gray-100/80 hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 relative group md:col-span-3">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-cyan-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl -z-10"></div>
+                <h2 className="text-2xl text-center font-bold text-gray-800 mb-6">
+                  The First Quantum AI Wearable
+                </h2>
+                <p className="text-base md:text-lg leading-relaxed text-gray-500">
+                  Wellbands is the first wearable that uses quantum sensors and
+                  AI to monitor your health in ways no other device can. While
+                  smartwatches track heart rate and steps, Wellbands looks
+                  deeper. It detects the earliest signs of imbalances in the
+                  body before symptoms appear. This means you can take action
+                  sooner, stay healthier, and live longer.
+                </p>
+              </div>
 
-          <div className="max-w-4xl mx-auto">
-            <p className="text-lg leading-7 text-gray-500 mb-6">
-              Wellbands is the next evolution in health wearables, introducing a
-              proactive approach to health management that addresses what
-              traditional devices cannot. While most wearables track metrics
-              like heart rate and steps after something has already happened,
-              Wellbands focuses on detecting energetic imbalances in the body,
-              long before symptoms or disease develop. This innovative approach
-              offers individuals the opportunity to address issues at their
-              root, helping to prevent chronic illness and support lifelong
-              wellness.
-            </p>
+              {/* What is Quantum Sensing */}
+              <div className="bg-white backdrop-blur-sm rounded-2xl p-8 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-gray-100/80 hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-cyan-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl -z-10"></div>
+                <FaAtom className="text-4xl text-blue-600 mx-auto mb-4" />
+                <h2 className="text-2xl text-center font-bold text-gray-800 mb-6">
+                  What is Quantum Sensing?
+                </h2>
+                <p className="text-base md:text-lg leading-relaxed text-gray-500">
+                  Quantum sensors are the most advanced measurement tools in
+                  existence. They can detect changes in the body at a
+                  microscopic level, things traditional wearables and medical
+                  tests can't see. We combine quantum sensing with AI offering
+                  real time insights into your health, helping you prevent
+                  issues before they happen.
+                </p>
+              </div>
 
-            <p className="text-lg leading-7 text-gray-500 mb-6">
-              There is a silent progression to illness that often goes
-              unnoticed. It begins with subtle energetic imbalances that
-              accumulate over time. These imbalances eventually manifest as
-              symptoms and, without intervention, can develop into chronic
-              diseases or worse. Traditional wearables operate reactively,
-              tracking health metrics only after a problem arises. Wellbands is
-              different. By monitoring the body’s biofield through advanced
-              quantum sensing, Wellbands identifies disruptions and provides
-              actionable insights to rebalance the body before these imbalances
-              lead to physical symptoms or illness.
-            </p>
+              {/* Why This Matters */}
+              <div className="bg-white backdrop-blur-sm rounded-2xl p-8 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-gray-100/80 hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-cyan-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl -z-10"></div>
+                <FaChartLine className="text-4xl text-blue-600 mx-auto mb-4" />
+                <h2 className="text-2xl text-center font-bold text-gray-800 mb-6">
+                  Why This Matters
+                </h2>
+                <p className="text-base md:text-lg leading-relaxed text-gray-500">
+                  Most health problems don't happen overnight. They develop
+                  slowly, often without symptoms, until they become serious.
+                  Wellbands helps you catch these early signals so you can make
+                  small changes that have a big impact over time. It's not just
+                  about tracking, it's about staying ahead of your health.
+                </p>
+              </div>
 
-            <p className="text-lg leading-7 text-gray-500 mb-6">
-              The benefits of Wellbands are significant. First, it aims to
-              eliminate the development of chronic disease by addressing
-              imbalances early. Second, it can expand life expectancy by
-              offering a more comprehensive and proactive approach to health
-              management. Finally, it helps individuals achieve balance in a
-              fast-paced, stress-filled world, supporting both mental and
-              physical well-being.
-            </p>
-
-            <p className="text-lg leading-7 text-gray-500 mb-6">
-              This revolutionary technology merges ancient wisdom about the
-              body’s energy fields with cutting-edge quantum sensing. By
-              providing real-time feedback and actionable insights, Wellbands
-              empowers users to take control of their health like never before.
-              The future of health is no longer about reacting to problems, it
-              is about preventing them. Wellbands is proud to lead this change,
-              creating a path to better health and a longer, more balanced life
-              for everyone.
-            </p>
+              {/* The Future of Health */}
+              <div className="bg-white backdrop-blur-sm rounded-2xl p-8 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-gray-100/80 hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-cyan-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl -z-10"></div>
+                <FaRocket className="text-4xl text-blue-600 mx-auto mb-4" />
+                <h2 className="text-2xl text-center font-bold text-gray-800 mb-6">
+                  A New Era of Health
+                </h2>
+                <p className="text-base md:text-lg leading-relaxed text-gray-500">
+                  We are creating a new category of health technology, one that
+                  puts prevention first. Wellbands is designed for anyone who
+                  wants to optimize their health, prevent disease, and take
+                  control of their future. This is more than a wearable. This is
+                  the next step in human health.
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -69,7 +87,8 @@ function Home() {
           </h2>
 
           <div className="max-w-3xl mx-auto">
-            <blockquote className="p-8 bg-white rounded-2xl shadow-lg">
+            <blockquote className="bg-white backdrop-blur-sm rounded-2xl p-8 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-gray-100/80 hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-cyan-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl -z-10"></div>
               <p className="text-lg italic text-gray-600 mb-4">
                 "Holistic, preventative, integrative medicine is the future of
                 fostering healthy communities and populations. Wellbands will
@@ -80,7 +99,7 @@ function Home() {
                 <img
                   src={dashawn}
                   alt="Dr. DaShawn Robinson"
-                  className="w-5 h-5 rounded-full "
+                  className="w-16 h-16 rounded-full"
                   style={{ width: "70px", height: "70px" }}
                 />
                 <div>

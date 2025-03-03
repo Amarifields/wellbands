@@ -14,48 +14,62 @@ function About() {
               About Wellbands
             </h2>
 
-            <div className="">
-              <p className="text-lg leading-7 text-gray-500 mb-6">
-                Wellbands was born from a deeply personal story of loss, hope,
-                and a vision to transform healthcare. Our founder, Amari Fields,
-                lost his grandmother to blood cancer at just 11 years old. She
-                was a visionary who saw the world not as it was, but as it could
-                be. Before she passed, she left behind a notebook filled with
-                ideas for innovations that could have changed lives. Her ability
-                to imagine groundbreaking possibilities inspired Amari, but she
-                never had the chance to bring those ideas to life.
+            <div className="max-w-4xl mx-auto">
+              <p className="text-lg leading-7 text-gray-600 mb-6">
+                Wellbands started with a promise to change the way we think
+                about health. It wasn’t just an idea. It came from loss, hope,
+                and the belief that healthcare should be different.
               </p>
 
-              <p className="text-lg leading-7 text-gray-500 mb-6">
-                Losing her left Amari with a deep sense of helplessness. He
-                never wanted anyone else to feel the pain of losing a loved one
-                to a preventable illness. Years later, upon rediscovering his
-                grandmother’s notebook, Amari realized he had inherited her
-                visionary gift. This discovery became a turning point, leading
-                to a promise he made to her, to create a device that could have
-                saved her life and would one day save the lives of many others.
+              <p className="text-lg leading-7 text-gray-600 mb-6">
+                When our founder, Amari Fields was 11 years old, he lost his
+                grandmother to blood cancer. She was more than family. She was a
+                dreamer, always writing ideas in her notebook about how the
+                world could be better. But she never got the chance to bring
+                them to life. By the time doctors found her illness, it was too
+                late.
               </p>
 
-              <p className="text-lg leading-7 text-gray-500 mb-6">
-                From that promise, Wellbands was born.
+              <p className="text-lg leading-7 text-gray-600 mb-6">
+                That loss changed everything. Years later, Amari found her
+                notebook again. It reminded him of her vision, her belief in new
+                possibilities. It made him ask, what if we could see illness
+                coming before it was too late? What if there was a way to help
+                people take control of their health earlier? He made a promise
+                to her, to himself, and to every family that has faced the same
+                pain.
               </p>
 
-              <p className="text-lg leading-7 text-gray-500 mb-6">
-                Wellbands is not just another piece of technology. It is a
-                mission to redefine how we approach health. The device focuses
-                on identifying the root causes of illness long before symptoms
-                appear. While traditional health tools react to problems after
-                they surface, Wellbands empowers individuals to act early by
-                addressing unseen imbalances in the body’s energy fields.
+              <p className="text-lg leading-7 text-gray-600 mb-6">
+                That promise became Wellbands.
               </p>
 
-              <p className="text-lg leading-7 text-gray-500">
-                This is not just about monitoring health. It is about creating a
-                future where people can take control of their well-being,
-                prevent illness, and live longer, healthier lives. Wellbands is
-                a tribute to the dream Amari’s grandmother never got to fulfill
-                and a promise to families everywhere that health and wellness
-                should be accessible to all.
+              <p className="text-lg leading-7 text-gray-600 mb-6">
+                Wellbands is not just another wearable. It doesn’t reactive
+                sensors and outdated metrics. It looks deeper, using quantum
+                sensors and AI to detect early signs of health imbalances before
+                symptoms appear. This gives people the chance to act sooner and
+                take control of their well-being before problems get worse.
+              </p>
+
+              <p className="text-lg leading-7 text-gray-600 mb-6">
+                For too long, healthcare has been reactive. We wait for
+                problems, then try to fix them. But what if we could help people
+                see those problems coming? What if small changes today could
+                prevent suffering tomorrow? That is what we are building.
+              </p>
+
+              <p className="text-lg leading-7 text-gray-600 mb-6">
+                Wellbands is more than technology. It is a commitment to a
+                future where people can take control of their health, prevent
+                illness, and live longer, healthier lives. It is for the
+                families, the dreamers, and the people who believe that health
+                should not be left to chance.
+              </p>
+
+              <p className="text-lg leading-7 text-gray-600">
+                The future of health is not about waiting. It is about acting
+                early. That is what Wellbands is here to do.
               </p>
             </div>
           </div>
