@@ -13,7 +13,7 @@ function Home() {
         <section className="mb-[100px] px-2 lg:px-[12px]">
           <div className="max-w-7xl mx-auto">
             <div className="grid md:grid-cols-3 space-y-6 gap-6 lg:gap-8 mb-24 px-4 sm:px-6 lg:px-8">
-              {/* First Box - Exactly like the others */}
+              {/* First Box */}
               <div className="bg-white backdrop-blur-sm rounded-2xl p-8 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-gray-100/80 hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 relative group md:col-span-3">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-cyan-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl -z-10"></div>
                 <h2 className="text-2xl text-center font-bold text-gray-800 mb-6">
@@ -83,7 +83,7 @@ function Home() {
 
         <section className="py-20 bg-gradient-to-b from-gray-50 to-gray-100">
           <h2 className="text-3xl font-bold text-center mb-16">
-            Expert Endorsements
+            Expert Endorsement
           </h2>
 
           <div className="max-w-3xl mx-auto">

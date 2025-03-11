@@ -1,20 +1,20 @@
 import React from "react";
-import Home from "./components/Home";
+import { Routes, Route, Navigate } from "react-router-dom";
 import About from "./components/About";
-import { Routes, Route } from "react-router-dom";
-import Contact from "./components/Contact";
-import Community from "./components/Community";
+import Connect from "./components/Contact";
+import Careers from "./components/Career";
+import Waitlist from "./components/Waitlist";
 
 function App() {
   return (
-    <>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/community" element={<Community />} />
-      </Routes>
-    </>
+    <Routes>
+      <Route path="/" element={<Waitlist />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/connect" element={<Connect />} />
+      <Route path="/career" element={<Careers />} />
+      {/* Redirect /home to / */}
+      <Route path="/home" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 

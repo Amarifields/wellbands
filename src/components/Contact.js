@@ -6,7 +6,8 @@ import Footer from "./Footer/Footer";
 const Contact = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     message: "",
   });
@@ -22,7 +23,7 @@ const Contact = () => {
       const response = await axios.post(
         "https://wellbands-backend.onrender.com/send-email/",
         {
-          name: formData.name,
+          name: `${formData.firstName} ${formData.lastName}`,
           text: formData.message,
           sender_email: formData.email,
           recipient: "support@wellbands.com",
@@ -32,7 +33,8 @@ const Contact = () => {
       if (response.status === 200) {
         setSuccessMessage("Your message has been sent successfully!");
         setFormData({
-          name: "",
+          firstName: "",
+          lastName: "",
           email: "",
           message: "",
         });
@@ -44,39 +46,136 @@ const Contact = () => {
   };
 
   return (
-    <div className="bg-gray-100 flex flex-col min-h-screen pt-4">
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        backgroundColor: "white",
+      }}
+    >
       <Navbar />
-      <div className="container mx-auto px-4 lg:px-20 pt-[90px] pb-10">
-        <div className="text-center space-y-6 mb-12">
-          <h1 className="text-4xl font-extrabold text-gray-800">Contact Us</h1>
-          <p className="text-lg sm:text-xl text-gray-600">
-            Questions or feedback? We'd love to hear from you.
+      {/* Main content area */}
+      <div
+        style={{
+          flexGrow: 1,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-start",
+          alignItems: "center",
+          paddingTop: "80px",
+          paddingBottom: "20px",
+          maxWidth: "1200px",
+          margin: "0 auto",
+          width: "100%",
+          paddingLeft: "1rem",
+          paddingRight: "1rem",
+          boxSizing: "border-box",
+        }}
+      >
+        <div style={{ textAlign: "center", marginBottom: "40px" }}>
+          <h1
+            style={{
+              fontSize: "2.5rem",
+              fontWeight: 800,
+              color: "#1F2937",
+              marginBottom: "20px",
+            }}
+          >
+            Contact Us
+          </h1>
+          <p style={{ fontSize: "1rem", color: "#4B5563" }}>
+            Need to get in touch with us?
           </p>
         </div>
-        <div className="max-w-3xl mx-auto border border-6 bg-white p-8 rounded-xl shadow-lg mb-20">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="space-y-2">
-              <label
-                htmlFor="name"
-                className="text-sm font-medium text-gray-700"
+        {/* Form container constrained for better readability */}
+        <div style={{ maxWidth: "600px", width: "100%" }}>
+          <form
+            onSubmit={handleSubmit}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "1.5rem",
+            }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "1rem",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.5rem",
+                }}
               >
-                Name
-              </label>
-              <input
-                id="name"
-                type="text"
-                name="name"
-                placeholder="John Doe"
-                required
-                onChange={handleChange}
-                value={formData.name}
-                className="w-full p-3 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
-              />
+                <label
+                  htmlFor="firstName"
+                  style={{ fontSize: "0.875rem", color: "#374151" }}
+                >
+                  First Name
+                </label>
+                <input
+                  id="firstName"
+                  type="text"
+                  name="firstName"
+                  placeholder="John"
+                  required
+                  onChange={handleChange}
+                  value={formData.firstName}
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem",
+                    border: "1px solid #D1D5DB",
+                    borderRadius: "0.375rem",
+                    outline: "none",
+                  }}
+                />
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.5rem",
+                }}
+              >
+                <label
+                  htmlFor="lastName"
+                  style={{ fontSize: "0.875rem", color: "#374151" }}
+                >
+                  Last Name
+                </label>
+                <input
+                  id="lastName"
+                  type="text"
+                  name="lastName"
+                  placeholder="Doe"
+                  required
+                  onChange={handleChange}
+                  value={formData.lastName}
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem",
+                    border: "1px solid #D1D5DB",
+                    borderRadius: "0.375rem",
+                    outline: "none",
+                  }}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.5rem",
+              }}
+            >
               <label
                 htmlFor="email"
-                className="text-sm font-medium text-gray-700"
+                style={{ fontSize: "0.875rem", color: "#374151" }}
               >
                 Email
               </label>
@@ -88,13 +187,25 @@ const Contact = () => {
                 required
                 onChange={handleChange}
                 value={formData.email}
-                className="w-full p-3 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
+                style={{
+                  width: "100%",
+                  padding: "0.75rem",
+                  border: "1px solid #D1D5DB",
+                  borderRadius: "0.375rem",
+                  outline: "none",
+                }}
               />
             </div>
-            <div className="space-y-2">
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.5rem",
+              }}
+            >
               <label
                 htmlFor="message"
-                className="text-sm font-medium text-gray-700"
+                style={{ fontSize: "0.875rem", color: "#374151" }}
               >
                 Message
               </label>
@@ -106,24 +217,44 @@ const Contact = () => {
                 required
                 onChange={handleChange}
                 value={formData.message}
-                className="w-full p-3 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
+                style={{
+                  width: "100%",
+                  padding: "0.75rem",
+                  border: "1px solid #D1D5DB",
+                  borderRadius: "0.375rem",
+                  outline: "none",
+                }}
               />
             </div>
-            <div className="text-center">
-              {successMessage && (
-                <div
-                  className="p-4 mb-2 text-sm text-green-700 bg-green-100 rounded-lg dark:bg-green-200 dark:text-green-800"
-                  role="alert"
-                >
-                  {successMessage}
-                </div>
-              )}
-            </div>
+            {successMessage && (
+              <div
+                style={{
+                  padding: "1rem",
+                  marginBottom: "1rem",
+                  fontSize: "0.875rem",
+                  color: "#047857",
+                  backgroundColor: "#D1FAE5",
+                  borderRadius: "0.375rem",
+                  textAlign: "center",
+                }}
+              >
+                {successMessage}
+              </div>
+            )}
             <button
               type="submit"
-              className="w-full bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-opacity-50"
+              style={{
+                width: "100%",
+                backgroundColor: "#3B82F6",
+                color: "white",
+                padding: "0.75rem",
+                borderRadius: "0.375rem",
+                fontSize: "1rem",
+                cursor: "pointer",
+                border: "none",
+              }}
             >
-              Send Message
+              Submit
             </button>
           </form>
         </div>

@@ -3,17 +3,33 @@ import logo from "../../assets/logo.png";
 import { FaBars, FaTimes } from "react-icons/fa";
 import { Link } from "react-router-dom";
 
-const Navbar = () => {
+const Navbar = ({ isWaitlist }) => {
   const [isOpen, setIsOpen] = useState(false);
   const links = [
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
-    { name: "Contact", path: "/contact" },
-    { name: "Community", path: "/community" },
+    { name: "Connect", path: "/connect" },
+    { name: "Careers", path: "/career" },
   ];
 
   const handleLinkClick = () => {
     setIsOpen(false);
+  };
+
+  // Link color: White on Waitlist, otherwise #4A5568
+  const linkColor = isWaitlist ? "#fff" : "#4A5568";
+
+  // Join button color: Blue (#0066CC) for normal pages, also #0066CC on Waitlist (per your request)
+  const joinButtonStyle = {
+    backgroundColor: "#0066CC",
+    color: "white",
+    padding: "4px 16px",
+    borderRadius: "20px",
+    display: "inline-block",
+    fontSize: "15px",
+    transition: "background-color 0.2s",
+    minWidth: "70px",
+    textAlign: "center",
   };
 
   return (
@@ -35,51 +51,98 @@ const Navbar = () => {
               {isOpen ? (
                 <FaTimes className="text-3xl text-gray-500" />
               ) : (
-                <FaBars className="text-3xl text-blue-500" />
+                <FaBars
+                  className={
+                    isWaitlist
+                      ? "text-3xl text-white"
+                      : "text-3xl text-blue-500"
+                  }
+                />
               )}
             </button>
           </div>
 
-          {/* Navigation Links for Desktop */}
-          <ul className="hidden lg:flex gap-8 items-center">
+          {/* Desktop Links */}
+          <ul className="hidden lg:flex items-center gap-8">
             {links.map((link, index) => (
               <li
                 key={index}
-                className="text-gray-600 font-medium hover:text-blue-500 transition-colors duration-200"
+                style={{ color: linkColor }}
+                className="font-medium hover:text-blue-500 transition-colors duration-200"
               >
                 <Link to={link.path}>{link.name}</Link>
               </li>
             ))}
-            {/* Shop Link */}
-            <li className="text-gray-600 font-medium hover:text-blue-500 transition-colors duration-200 relative">
-              <Link to="#" className="group" disabled>
-                Shop
-                <div className="absolute invisible group-hover:visible mt-5 w-auto p-2 bg-gray-900 text-white rounded-lg shadow-lg">
-                  Coming Soon
-                </div>
+            {/* Join button */}
+            <li className="ml-8">
+              <Link
+                to="/"
+                style={joinButtonStyle}
+                onMouseOver={(e) =>
+                  (e.target.style.backgroundColor = "#0055CC")
+                }
+                onMouseOut={(e) =>
+                  (e.target.style.backgroundColor =
+                    joinButtonStyle.backgroundColor)
+                }
+              >
+                Join
               </Link>
             </li>
           </ul>
         </nav>
       </div>
 
-      {/* Mobile Menu (Hidden on Large Screens) */}
+      {/* Mobile Menu */}
       {isOpen && (
-        <div className="fixed inset-0 bg-transparent z-50 flex flex-col justify-center items-center lg:hidden">
-          {/* Navigation Links for Mobile */}
+        <div
+          className={
+            isWaitlist
+              ? // Dark background, white text on Waitlist
+                "fixed top-0 left-0 w-full h-full bg-[#111827] text-white z-50 flex flex-col justify-center items-center pt-20 lg:hidden"
+              : // Original white background for normal pages
+                "fixed top-0 left-0 w-full h-full bg-white text-gray-600 z-50 flex flex-col justify-center items-center pt-20 lg:hidden"
+          }
+        >
           <ul className="flex flex-col items-center gap-8">
             {links.map((link, index) => (
               <li
                 key={index}
-                className="text-gray-600 font-medium hover:text-blue-500 text-lg transition-colors duration-200"
+                className={
+                  isWaitlist
+                    ? "font-medium text-white hover:text-blue-300 text-lg transition-colors duration-200"
+                    : "font-medium text-gray-600 hover:text-blue-500 text-lg transition-colors duration-200"
+                }
               >
                 <Link to={link.path} onClick={handleLinkClick}>
                   {link.name}
                 </Link>
               </li>
             ))}
-            <li className="text-gray-600 font-medium text-lg hover:text-blue-500">
-              <span className="cursor-not-allowed">Shop</span>
+            {/* Mobile Join button */}
+            <li>
+              <Link
+                to="/"
+                onClick={handleLinkClick}
+                style={{
+                  backgroundColor: "#0066CC",
+                  color: "#fff",
+                  padding: "0.75rem 1.5rem",
+                  borderRadius: "0.5rem",
+                  display: "block",
+                  width: "100%",
+                  textAlign: "center",
+                  fontSize: "1rem",
+                  transition: "background-color 0.2s",
+                  marginTop: "1rem",
+                }}
+                onMouseOver={(e) =>
+                  (e.target.style.backgroundColor = "#0055CC")
+                }
+                onMouseOut={(e) => (e.target.style.backgroundColor = "#0066CC")}
+              >
+                Join
+              </Link>
             </li>
           </ul>
         </div>
