@@ -1,17 +1,11 @@
-import React, { useState } from "react";
+import React from "react";
 import Navbar from "./Navbar/Navbar";
 import Footer from "./Footer/Footer";
 
 function Careers() {
-  const [notification, setNotification] = useState("");
-
-  const handleComingSoon = (e) => {
-    e.preventDefault();
-    setNotification("Coming soon!");
-    setTimeout(() => {
-      setNotification("");
-    }, 3000);
-  };
+  // Google Form URL
+  const googleFormLink =
+    "https://docs.google.com/forms/d/e/1FAIpQLSfPYWpXadnwdFDbNcFrLEZEnRMbNR1ghaE7XaWhXkueW7vPpA/viewform?usp=sharing";
 
   return (
     <div
@@ -55,7 +49,7 @@ function Careers() {
             Creating Something Monumental
           </h1>
           <p style={{ fontSize: "1rem", color: "#4B5563" }}>
-            We’re looking for people with an “I can do it” attitude, speed, and
+            We are looking for people with an “I can do it” attitude, speed, and
             passion to help build the future of healthcare at Wellbands.
           </p>
         </div>
@@ -99,8 +93,9 @@ function Careers() {
               Quantum Physicist
             </span>
             <a
-              href="#"
-              onClick={handleComingSoon}
+              href={googleFormLink}
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
                 fontSize: "0.9rem",
                 color: "#0066CC",
@@ -108,7 +103,7 @@ function Careers() {
                 fontWeight: 500,
               }}
             >
-              Apply now (Coming soon) &rarr;
+              Apply now &rarr;
             </a>
           </div>
 
@@ -127,8 +122,9 @@ function Careers() {
               Biophysicist
             </span>
             <a
-              href="#"
-              onClick={handleComingSoon}
+              href={googleFormLink}
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
                 fontSize: "0.9rem",
                 color: "#0066CC",
@@ -136,7 +132,7 @@ function Careers() {
                 fontWeight: 500,
               }}
             >
-              Apply now (Coming soon) &rarr;
+              Apply now &rarr;
             </a>
           </div>
 
@@ -155,8 +151,9 @@ function Careers() {
               AI/ML Engineer
             </span>
             <a
-              href="#"
-              onClick={handleComingSoon}
+              href={googleFormLink}
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
                 fontSize: "0.9rem",
                 color: "#0066CC",
@@ -164,7 +161,7 @@ function Careers() {
                 fontWeight: 500,
               }}
             >
-              Apply now (Coming soon) &rarr;
+              Apply now &rarr;
             </a>
           </div>
         </div>
@@ -191,38 +188,6 @@ function Careers() {
       </div>
 
       <Footer />
-
-      {/* Toast Notification */}
-      {notification && (
-        <div
-          className="toast-notification"
-          style={{
-            position: "fixed",
-            bottom: "20px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            backgroundColor: "#0066CC",
-            color: "white",
-            padding: "12px 24px",
-            borderRadius: "9999px",
-            boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-            zIndex: 1000,
-          }}
-        >
-          {notification}
-        </div>
-      )}
-
-      {/* Media query for toast positioning on desktop screens */}
-      <style>
-        {`
-          @media (min-width: 1024px) {
-            .toast-notification {
-              bottom: 100px !important;
-            }
-          }
-        `}
-      </style>
     </div>
   );
 }

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import axios from "axios";
 import Navbar from "./Navbar/Navbar";
 // import Footer from "./Footer/Footer"; // Uncomment if desired
 
@@ -6,9 +7,32 @@ function Waitlist() {
   const [email, setEmail] = useState("");
   const [notification, setNotification] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setNotification("Coming soon!");
+    try {
+      // POST to the GetWaitlist API endpoint with required fields
+      const response = await axios.post(
+        "https://api.getwaitlist.com/api/v1/signup",
+        {
+          email: email,
+          waitlist_id: 26138, // Replace with your actual Waitlist ID if different
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      // If the signup was successful (status 200), show a thank you message
+      if (response.status === 200) {
+        setNotification("Thank you for signing up!");
+        setEmail(""); // clear email field
+      }
+    } catch (error) {
+      console.error("Error submitting signup:", error);
+      setNotification("Something went wrong. Please try again later.");
+    }
+    // Clear the notification after 3 seconds
     setTimeout(() => {
       setNotification("");
     }, 3000);
@@ -76,7 +100,7 @@ function Waitlist() {
             natural solutions.
           </p>
 
-          {/* Single-field form with button on the right */}
+          {/* Signup Form */}
           <form
             onSubmit={handleSubmit}
             style={{
@@ -132,6 +156,23 @@ function Waitlist() {
             </div>
           </form>
 
+          {/* Notification (Thank You / Error Message) */}
+          {notification && (
+            <div
+              className="toast-notification"
+              style={{
+                marginTop: "1rem",
+                backgroundColor: "#0066CC",
+                color: "white",
+                padding: "12px 24px",
+                borderRadius: "9999px",
+                boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+              }}
+            >
+              {notification}
+            </div>
+          )}
+
           {/* Support text */}
           <p
             style={{
@@ -149,35 +190,9 @@ function Waitlist() {
 
       {/* <Footer /> */}
 
-      {/* Toast Notification */}
-      {notification && (
-        <div
-          className="toast-notification"
-          style={{
-            position: "fixed",
-            bottom: "20px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            backgroundColor: "#0066CC",
-            color: "white",
-            padding: "12px 24px",
-            borderRadius: "9999px",
-            boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-            zIndex: 1000,
-          }}
-        >
-          {notification}
-        </div>
-      )}
-
-      {/* Media query for toast positioning on desktop screens */}
+      {/* Keyframes for animated gradient text */}
       <style>
         {`
-          @media (min-width: 1024px) {
-            .toast-notification {
-              bottom: 100px !important;
-            }
-          }
           @keyframes textGradient {
             0% {
               background-position: 0% 50%;

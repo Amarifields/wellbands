@@ -35,7 +35,7 @@ const Footer = () => {
               <a href="/connect" style={linkStyle}>
                 Connect
               </a>
-              <a href="/careers" style={linkStyle}>
+              <a href="/career" style={linkStyle}>
                 Careers
               </a>
             </div>
