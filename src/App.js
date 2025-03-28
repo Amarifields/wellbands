@@ -1,6 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import Waitlist from "./components/Waitlist";
+import Waitlist from "./components/newWaitlist";
 import About from "./components/About";
 import Connect from "./components/Contact";
 import Careers from "./components/Career";
