@@ -1,153 +1,359 @@
-import React, { useState } from "react";
-import logo from "../../assets/logo.png";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { FaBars, FaTimes } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import logo from "../../assets/logo.png";
 
-const Navbar = ({ isWaitlist }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const links = [
+const Navbar = ({ whiteBg = false }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
+
+  // Handle scroll detection for background change
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Lock body scroll when menu is open
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.classList.add("menu-open");
+    } else {
+      document.body.classList.remove("menu-open");
+    }
+    return () => document.body.classList.remove("menu-open");
+  }, [menuOpen]);
+
+  // Navigation routes
+  const navItems = [
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
     { name: "Connect", path: "/connect" },
     { name: "Careers", path: "/career" },
   ];
 
-  const handleLinkClick = () => {
-    setIsOpen(false);
-  };
-
-  // Link color: White on Waitlist, otherwise #4A5568
-  const linkColor = isWaitlist ? "#fff" : "#4A5568";
-
-  // Join button color: Blue (#0066CC) for normal pages, also #0066CC on Waitlist (per your request)
-  const joinButtonStyle = {
-    backgroundColor: "#0066CC",
-    color: "white",
-    padding: "4px 16px",
-    borderRadius: "20px",
-    display: "inline-block",
-    fontSize: "15px",
-    transition: "background-color 0.2s",
-    minWidth: "70px",
-    textAlign: "center",
-  };
+  const closeMenu = () => setMenuOpen(false);
 
   return (
-    <div className="bg-transparent w-full fixed top-0 z-50">
-      <div className="container mx-auto px-4 md:px-8 lg:px-10 py-6">
-        <nav className="flex justify-between items-center">
+    <>
+      <header
+        className={`navbar ${whiteBg ? "navbar-white" : ""} ${
+          scrolled && !whiteBg ? "navbar-scrolled" : ""
+        }`}
+      >
+        <div className="navbar-container">
           {/* Logo */}
-          <Link to="/" onClick={handleLinkClick}>
-            <img
-              src={logo}
-              alt="Wellbands Logo"
-              style={{ width: "220px", height: "auto", maxWidth: "100%" }}
-            />
+          <Link to="/" className="navbar-logo" onClick={closeMenu}>
+            <img src={logo} alt="Wellbands" />
           </Link>
 
-          {/* Hamburger Icon for Mobile */}
-          <div className="lg:hidden">
-            <button onClick={() => setIsOpen(!isOpen)}>
-              {isOpen ? (
-                <FaTimes className="text-3xl text-gray-500" />
-              ) : (
-                <FaBars
-                  className={
-                    isWaitlist
-                      ? "text-3xl text-white"
-                      : "text-3xl text-blue-500"
-                  }
-                />
-              )}
-            </button>
-          </div>
-
-          {/* Desktop Links */}
-          <ul className="hidden lg:flex items-center gap-8">
-            {links.map((link, index) => (
-              <li
-                key={index}
-                style={{ color: linkColor }}
-                className="font-medium hover:text-blue-500 transition-colors duration-200"
-              >
-                <Link to={link.path}>{link.name}</Link>
+          {/* Desktop Navigation */}
+          <nav className="navbar-nav">
+            <ul className="navbar-nav-list">
+              {navItems.map((item) => (
+                <li key={item.path} className="navbar-nav-item">
+                  <Link
+                    to={item.path}
+                    className={`navbar-nav-link ${
+                      location.pathname === item.path ? "active" : ""
+                    }`}
+                  >
+                    {item.name}
+                  </Link>
+                </li>
+              ))}
+              <li className="navbar-nav-item navbar-cta">
+                <Link to="/waitlist" className="navbar-button">
+                  Join Waitlist
+                </Link>
               </li>
-            ))}
-            {/* Join button */}
-            <li className="ml-8">
-              <Link
-                to="/"
-                style={joinButtonStyle}
-                onMouseOver={(e) =>
-                  (e.target.style.backgroundColor = "#0055CC")
-                }
-                onMouseOut={(e) =>
-                  (e.target.style.backgroundColor =
-                    joinButtonStyle.backgroundColor)
-                }
-              >
-                Join
-              </Link>
-            </li>
-          </ul>
-        </nav>
-      </div>
+            </ul>
+          </nav>
 
-      {/* Mobile Menu */}
-      {isOpen && (
-        <div
-          className={
-            isWaitlist
-              ? // Dark background, white text on Waitlist
-                "fixed top-0 left-0 w-full h-full bg-[#111827] text-white z-50 flex flex-col justify-center items-center pt-20 lg:hidden"
-              : // Original white background for normal pages
-                "fixed top-0 left-0 w-full h-full bg-white text-gray-600 z-50 flex flex-col justify-center items-center pt-20 lg:hidden"
-          }
-        >
-          <ul className="flex flex-col items-center gap-8">
-            {links.map((link, index) => (
-              <li
-                key={index}
-                className={
-                  isWaitlist
-                    ? "font-medium text-white hover:text-blue-300 text-lg transition-colors duration-200"
-                    : "font-medium text-gray-600 hover:text-blue-500 text-lg transition-colors duration-200"
-                }
-              >
-                <Link to={link.path} onClick={handleLinkClick}>
-                  {link.name}
+          {/* Mobile Menu Button */}
+          <button
+            className="navbar-menu-toggle"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Toggle navigation menu"
+          >
+            {menuOpen ? <FaTimes size={28} /> : <FaBars size={28} />}
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile Menu (separate from header) */}
+      <div className={`mobile-menu ${menuOpen ? "open" : ""}`}>
+        <div className="mobile-menu-container">
+          <ul className="mobile-menu-list">
+            {navItems.map((item) => (
+              <li key={item.path} className="mobile-menu-item">
+                <Link
+                  to={item.path}
+                  className={`mobile-menu-link ${
+                    location.pathname === item.path ? "active" : ""
+                  }`}
+                  onClick={closeMenu}
+                >
+                  {item.name}
                 </Link>
               </li>
             ))}
-            {/* Mobile Join button */}
-            <li>
+            <li className="mobile-menu-item">
               <Link
-                to="/"
-                onClick={handleLinkClick}
-                style={{
-                  backgroundColor: "#0066CC",
-                  color: "#fff",
-                  padding: "0.75rem 1.5rem",
-                  borderRadius: "0.5rem",
-                  display: "block",
-                  width: "100%",
-                  textAlign: "center",
-                  fontSize: "1rem",
-                  transition: "background-color 0.2s",
-                  marginTop: "1rem",
-                }}
-                onMouseOver={(e) =>
-                  (e.target.style.backgroundColor = "#0055CC")
-                }
-                onMouseOut={(e) => (e.target.style.backgroundColor = "#0066CC")}
+                to="/waitlist"
+                className="mobile-menu-button"
+                onClick={closeMenu}
               >
-                Join
+                Join Waitlist
               </Link>
             </li>
           </ul>
         </div>
-      )}
-    </div>
+      </div>
+
+      <style jsx global>{`
+        /* Global style for body when menu is open */
+        body.menu-open {
+          overflow: hidden;
+          position: fixed;
+          width: 100%;
+          height: 100%;
+        }
+      `}</style>
+
+      <style jsx>{`
+        /* NAVBAR STYLES */
+        .navbar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          width: 100%;
+          height: 80px;
+          background-color: transparent;
+          transition: background-color 0.3s ease;
+          z-index: 1000;
+        }
+
+        .navbar-white {
+          background-color: #ffffff;
+        }
+
+        .navbar-scrolled {
+          background-color: rgba(10, 10, 10, 0.95);
+          backdrop-filter: blur(10px);
+        }
+
+        .navbar-container {
+          width: 100%;
+          max-width: 1400px;
+          height: 100%;
+          margin: 0 auto;
+          padding: 0 24px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        /* Logo styles */
+        .navbar-logo {
+          display: block;
+          height: 50px;
+          z-index: 10;
+        }
+
+        .navbar-logo img {
+          height: 100%;
+          width: auto;
+          display: block;
+        }
+
+        /* Desktop navigation */
+        .navbar-nav {
+          display: none;
+        }
+
+        .navbar-nav-list {
+          display: flex;
+          align-items: center;
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          gap: 32px;
+        }
+
+        .navbar-nav-item {
+          margin: 0;
+        }
+
+        .navbar-nav-link {
+          font-size: 16px;
+          font-weight: 500;
+          color: ${whiteBg ? "#1F2937" : "#FFFFFF"};
+          text-decoration: none;
+          transition: color 0.2s ease;
+          padding: 6px 0;
+          position: relative;
+        }
+
+        .navbar-nav-link:after {
+          content: "";
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 0;
+          height: 2px;
+          background: linear-gradient(90deg, #00b8d4 0%, #00e5ff 100%);
+          transition: width 0.3s ease;
+        }
+
+        .navbar-nav-link:hover:after,
+        .navbar-nav-link.active:after {
+          width: 100%;
+        }
+
+        .navbar-nav-link:hover,
+        .navbar-nav-link.active {
+          color: #00e5ff;
+        }
+
+        .navbar-button {
+          display: inline-block;
+          background: linear-gradient(90deg, #00b8d4 0%, #00e5ff 100%);
+          color: #000;
+          font-weight: 600;
+          padding: 10px 24px;
+          border-radius: 50px;
+          text-decoration: none;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 10px rgba(0, 184, 212, 0.3);
+        }
+
+        .navbar-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 15px rgba(0, 184, 212, 0.4);
+        }
+
+        /* Mobile menu toggle */
+        .navbar-menu-toggle {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 48px;
+          height: 48px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: ${whiteBg ? "#1F2937" : "#FFFFFF"};
+          padding: 0;
+          z-index: 10;
+        }
+
+        /* Mobile menu */
+        .mobile-menu {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: #0a0a0a;
+          z-index: 999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0;
+          visibility: hidden;
+          transition: opacity 0.3s ease, visibility 0.3s ease;
+          padding: 80px 20px 40px;
+        }
+
+        .mobile-menu.open {
+          opacity: 1;
+          visibility: visible;
+        }
+
+        .mobile-menu-container {
+          width: 100%;
+          max-width: 400px;
+        }
+
+        .mobile-menu-list {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 24px;
+        }
+
+        .mobile-menu-item {
+          width: 100%;
+          text-align: center;
+        }
+
+        .mobile-menu-link {
+          display: block;
+          font-size: 24px;
+          font-weight: 500;
+          color: #ffffff;
+          text-decoration: none;
+          padding: 10px;
+          transition: color 0.2s ease;
+        }
+
+        .mobile-menu-link:hover,
+        .mobile-menu-link.active {
+          color: #00e5ff;
+        }
+
+        .mobile-menu-button {
+          display: inline-block;
+          background: linear-gradient(90deg, #00b8d4 0%, #00e5ff 100%);
+          color: #000;
+          font-weight: 600;
+          padding: 14px 30px;
+          border-radius: 50px;
+          text-decoration: none;
+          margin-top: 20px;
+          width: 80%;
+        }
+
+        /* Responsive adjustments */
+        @media (min-width: 1024px) {
+          .navbar-nav {
+            display: block;
+          }
+
+          .navbar-menu-toggle {
+            display: none;
+          }
+        }
+
+        @media (max-width: 1023px) {
+          .navbar-logo {
+            height: 45px;
+          }
+        }
+
+        @media (max-width: 767px) {
+          .navbar {
+            height: 70px;
+          }
+
+          .navbar-container {
+            padding: 0 16px;
+          }
+
+          .mobile-menu-link {
+            font-size: 20px;
+          }
+        }
+      `}</style>
+    </>
   );
 };
 
