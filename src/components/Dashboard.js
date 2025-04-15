@@ -676,13 +676,17 @@ const Dashboard = ({ onLeave }) => {
           background: rgba(255, 255, 255, 0.1);
           margin: 30px 0;
         }
+        .timeline-container {
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+        }
         .timeline::before {
           content: "";
           position: absolute;
           top: 0;
           left: 0;
           height: 100%;
-          width: 30%;
+          width: 33%;
           background: linear-gradient(
             90deg,
             var(--primary) 0%,
@@ -832,6 +836,20 @@ const Dashboard = ({ onLeave }) => {
           );
           animation: meditation-pulse 4s infinite ease-in-out;
         }
+        .light-blue-marker {
+          background: var(--primary);
+          box-shadow: 0 0 15px var(--primary);
+        }
+
+        .dark-blue-marker {
+          background: #007ebd; /* Adjust to your desired dark blue */
+          box-shadow: 0 0 15px #007ebd;
+        }
+
+        .red-marker {
+          background: var(--warning);
+          box-shadow: 0 0 15px var(--warning);
+        }
         @keyframes meditation-pulse {
           0%,
           100% {
@@ -850,12 +868,82 @@ const Dashboard = ({ onLeave }) => {
           display: block;
           animation: fadeIn 0.5s ease-out forwards;
         }
+        .dark-blue-marker {
+          background: #007ebd; /* Use a darker blue than your primary */
+          box-shadow: 0 0 15px #007ebd;
+        }
+
+        .red-marker {
+          background: var(--warning); /* Assuming --warning is your red */
+          box-shadow: 0 0 15px var(--warning);
+        }
         @keyframes fadeIn {
           from {
             opacity: 0;
           }
           to {
             opacity: 1;
+          }
+        }
+        @media (max-width: 767px) {
+          /* Force neon-boxes in the Overview tab to use full width */
+          #overview .neon-box {
+            width: 100%;
+            padding-left: 1.5rem; /* Adjust as needed */
+            padding-right: 1.5rem; /* Adjust as needed */
+          }
+        }
+        @media (max-width: 767px) {
+          /* Hide dot elements inside the biofield ripple container */
+          .biofield-ripple .pulse {
+            display: none !important;
+          }
+        }
+        @media (max-width: 767px) {
+          /* Remove left padding from the right side of the digestive forecast on mobile */
+          #predictions .md\\:pl-8 {
+            padding-left: 0 !important;
+          }
+        }
+        @media (max-width: 767px) {
+          /* Ensure neon-boxes take full width on mobile */
+          #overview .neon-box {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+          }
+          /* Also force the implementation timeline to stretch full width */
+          #recommendations .vertical-timeline,
+          #overview .vertical-timeline {
+            width: 100% !important;
+          }
+        }
+        @media (max-width: 767px) {
+          /* Hide the connecting line */
+          .vertical-timeline::before {
+            display: none;
+          }
+          /* Adjust timeline markers to simple blue circles */
+          .vertical-timeline-item::before {
+            border: none;
+            background: var(--primary);
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+          }
+        }
+        @media (max-width: 767px) {
+          /* For the implementation timeline on Recommendations tab, remove the connecting line */
+          .implementation-timeline::before {
+            display: none;
+          }
+          .implementation-timeline-item::before {
+            border: none;
+            background: var(--primary);
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
           }
         }
       `}</style>
@@ -953,7 +1041,6 @@ const Dashboard = ({ onLeave }) => {
                   >
                     Leave
                   </li>
-                  {/* Add more items if you want */}
                 </ul>
               </div>
             )}
@@ -964,7 +1051,10 @@ const Dashboard = ({ onLeave }) => {
       {/* Dashboard Navigation */}
       <div className="mb-6 flex overflow-x-auto pb-2 -mx-1">
         <button
-          onClick={() => setActiveTab("overview")}
+          onClick={() => {
+            setActiveTab("overview");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
           className={`px-4 py-2 mx-1 rounded-lg ${
             activeTab === "overview"
               ? "bg-opacity-20 bg-primary"
@@ -975,7 +1065,10 @@ const Dashboard = ({ onLeave }) => {
           Overview
         </button>
         <button
-          onClick={() => setActiveTab("biofield")}
+          onClick={() => {
+            setActiveTab("biofield");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
           className={`px-4 py-2 mx-1 rounded-lg ${
             activeTab === "biofield"
               ? "bg-opacity-20 bg-primary"
@@ -986,7 +1079,10 @@ const Dashboard = ({ onLeave }) => {
           Biofield
         </button>
         <button
-          onClick={() => setActiveTab("predictions")}
+          onClick={() => {
+            setActiveTab("predictions");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
           className={`px-4 py-2 mx-1 rounded-lg ${
             activeTab === "predictions"
               ? "bg-opacity-20 bg-primary"
@@ -997,7 +1093,10 @@ const Dashboard = ({ onLeave }) => {
           Predictions
         </button>
         <button
-          onClick={() => setActiveTab("systems")}
+          onClick={() => {
+            setActiveTab("systems");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
           className={`px-4 py-2 mx-1 rounded-lg ${
             activeTab === "systems"
               ? "bg-opacity-20 bg-primary"
@@ -1008,7 +1107,10 @@ const Dashboard = ({ onLeave }) => {
           Body Systems
         </button>
         <button
-          onClick={() => setActiveTab("recommendations")}
+          onClick={() => {
+            setActiveTab("recommendations");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
           className={`px-4 py-2 mx-1 rounded-lg ${
             activeTab === "recommendations"
               ? "bg-opacity-20 bg-primary"
@@ -1242,7 +1344,10 @@ const Dashboard = ({ onLeave }) => {
                 <div className="flex flex-wrap gap-3">
                   <button
                     className="py-2 px-3 rounded-lg gradient-bg text-white text-sm font-bold hover:opacity-90 transition"
-                    onClick={() => setActiveTab("recommendations")}
+                    onClick={() => {
+                      setActiveTab("recommendations");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
                   >
                     View Recommendations
                   </button>
@@ -1392,7 +1497,10 @@ const Dashboard = ({ onLeave }) => {
               <div className="mt-4 pt-3 border-t border-gray-800">
                 <button
                   className="w-full py-2 rounded-lg gradient-bg text-white font-bold hover:opacity-90 transition text-sm"
-                  onClick={() => setActiveTab("biofield")}
+                  onClick={() => {
+                    setActiveTab("biofield");
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
                 >
                   View Full Biofield Analysis
                 </button>
@@ -1743,7 +1851,10 @@ const Dashboard = ({ onLeave }) => {
                 <div className="flex space-x-2">
                   <button
                     className="py-2 px-3 rounded-lg gradient-bg text-white text-sm font-bold hover:opacity-90 transition"
-                    onClick={() => setActiveTab("recommendations")}
+                    onClick={() => {
+                      setActiveTab("recommendations");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
                   >
                     View Protocol
                   </button>
@@ -1824,20 +1935,21 @@ const Dashboard = ({ onLeave }) => {
 
               <div className="timeline-container mb-6">
                 <div className="timeline">
-                  <div className="time-now timeline-marker"></div>
+                  {/* Remove the “time-now” marker and instead use explicit classes */}
                   <div
-                    className="time-future timeline-marker warning"
-                    style={{ left: "45%" }}
+                    className="timeline-marker light-blue-marker"
+                    style={{ left: "33%" }}
                   ></div>
                   <div
-                    className="time-future timeline-marker"
-                    style={{ left: "60%" }}
+                    className="timeline-marker dark-blue-marker"
+                    style={{ left: "65%" }}
                   ></div>
                   <div
-                    className="time-future timeline-marker"
-                    style={{ left: "80%" }}
+                    className="timeline-marker red-marker"
+                    style={{ left: "97.5%" }}
                   ></div>
                 </div>
+
                 <div className="flex justify-between text-xs opacity-70">
                   <div>
                     Today
@@ -1913,7 +2025,7 @@ const Dashboard = ({ onLeave }) => {
                 Digestive System Forecast
               </h3>
 
-              <div className="flex flex-col md:flex-row items-center">
+              <div className="flex flex-col md:flex-row items-start">
                 <div className="md:w-1/3 mb-6 md:mb-0">
                   <div className="flex items-center mb-4">
                     <i className="fas fa-utensils text-warning text-2xl mr-4"></i>
@@ -1927,7 +2039,7 @@ const Dashboard = ({ onLeave }) => {
                   <div id="digestive-trend-chart" className="h-40"></div>
                 </div>
 
-                <div className="md:w-2/3 md:pl-8">
+                <div className="md:w-2/3 md:pl-8 text-left">
                   <h4 className="font-bold mb-2">Early Detection Analysis</h4>
                   <p className="text-sm mb-3">
                     Our quantum sensors have detected subtle energy disruptions
@@ -1985,40 +2097,64 @@ const Dashboard = ({ onLeave }) => {
                   How Presymptomatic Analysis Works
                 </h3>
 
-                <div className="vertical-timeline">
-                  <div className="vertical-timeline-item">
-                    <h4 className="font-bold text-sm">Quantum Sensing</h4>
-                    <p className="text-xs opacity-80">
-                      Wellbands detects subtle energy changes in your biofield
-                    </p>
+                <div className="flex flex-col space-y-3">
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full gradient-bg flex items-center justify-center mr-3">
+                      <span className="text-xs">1</span>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm">Quantum Sensing</h4>
+                      <p className="text-xs opacity-80">
+                        Wellbands detects subtle energy changes in your biofield
+                      </p>
+                    </div>
                   </div>
-
-                  <div className="vertical-timeline-item">
-                    <h4 className="font-bold text-sm">Pattern Analysis</h4>
-                    <p className="text-xs opacity-80">
-                      AI identifies patterns linked to future health changes
-                    </p>
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full gradient-bg flex items-center justify-center mr-3">
+                      <span className="text-xs">2</span>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm">Pattern Analysis</h4>
+                      <p className="text-xs opacity-80">
+                        AI identifies patterns linked to future health changes
+                      </p>
+                    </div>
                   </div>
-
-                  <div className="vertical-timeline-item">
-                    <h4 className="font-bold text-sm">Early Detection</h4>
-                    <p className="text-xs opacity-80">
-                      Issues identified 3-6 months before symptoms would appear
-                    </p>
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full gradient-bg flex items-center justify-center mr-3">
+                      <span className="text-xs">3</span>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm">Early Detection</h4>
+                      <p className="text-xs opacity-80">
+                        Issues identified 3-6 months before symptoms would
+                        appear
+                      </p>
+                    </div>
                   </div>
-
-                  <div className="vertical-timeline-item">
-                    <h4 className="font-bold text-sm">Personalized Protocol</h4>
-                    <p className="text-xs opacity-80">
-                      Targeted recommendations to restore balance
-                    </p>
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full gradient-bg flex items-center justify-center mr-3">
+                      <span className="text-xs">4</span>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm">
+                        Personalized Protocol
+                      </h4>
+                      <p className="text-xs opacity-80">
+                        Targeted recommendations to restore balance
+                      </p>
+                    </div>
                   </div>
-
-                  <div className="vertical-timeline-item">
-                    <h4 className="font-bold text-sm">Preventive Action</h4>
-                    <p className="text-xs opacity-80">
-                      Health issue prevented before it can manifest physically
-                    </p>
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 rounded-full gradient-bg flex items-center justify-center mr-3">
+                      <span className="text-xs">5</span>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm">Preventive Action</h4>
+                      <p className="text-xs opacity-80">
+                        Health issue prevented before it can manifest physically
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2501,7 +2637,13 @@ const Dashboard = ({ onLeave }) => {
                   </div>
 
                   <div className="mt-4 flex justify-center">
-                    <button className="py-2 px-4 rounded-lg gradient-bg text-white text-sm font-bold hover:opacity-90 transition">
+                    <button
+                      className="py-2 px-4 rounded-lg gradient-bg text-white text-sm font-bold hover:opacity-90 transition"
+                      onClick={() => {
+                        setActiveTab("recommendations");
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                    >
                       View Full Digestive Protocol
                     </button>
                   </div>
@@ -2662,42 +2804,67 @@ const Dashboard = ({ onLeave }) => {
                 </div>
               </div>
 
-              <div className="neon-box p-6">
+              <div className="neon-box p-6 w-full">
                 <h4 className="font-bold mb-4">Implementation Timeline</h4>
-                <div className="vertical-timeline">
-                  <div className="vertical-timeline-item">
-                    <h5 className="font-bold text-sm">Today</h5>
-                    <p className="text-xs opacity-80">
-                      Begin ginger tea and digestive breathing exercises
-                    </p>
+                <div className="flex flex-col space-y-3">
+                  <div className="flex items-start">
+                    <div className="w-6 h-6 rounded-full gradient-bg flex items-center justify-center mr-3">
+                      <span className="text-xs">1</span>
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-sm">Today</h5>
+                      <p className="text-xs opacity-80">
+                        Begin ginger tea and digestive breathing exercises
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="vertical-timeline-item">
-                    <h5 className="font-bold text-sm">Day 3-7</h5>
-                    <p className="text-xs opacity-80">
-                      Add supplements and reduce inflammatory foods
-                    </p>
+                  <div className="flex items-start">
+                    <div className="w-6 h-6 rounded-full gradient-bg flex items-center justify-center mr-3">
+                      <span className="text-xs">2</span>
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-sm">Day 3-7</h5>
+                      <p className="text-xs opacity-80">
+                        Add supplements and reduce inflammatory foods
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="vertical-timeline-item">
-                    <h5 className="font-bold text-sm">Day 8-14</h5>
-                    <p className="text-xs opacity-80">
-                      Incorporate all meridian exercises
-                    </p>
+                  <div className="flex items-start">
+                    <div className="w-6 h-6 rounded-full gradient-bg flex items-center justify-center mr-3">
+                      <span className="text-xs">3</span>
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-sm">Day 8-14</h5>
+                      <p className="text-xs opacity-80">
+                        Incorporate all meridian exercises
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="vertical-timeline-item">
-                    <h5 className="font-bold text-sm">Day 21</h5>
-                    <p className="text-xs opacity-80">
-                      Reassessment scan to evaluate progress
-                    </p>
+                  <div className="flex items-start">
+                    <div className="w-6 h-6 rounded-full gradient-bg flex items-center justify-center mr-3">
+                      <span className="text-xs">4</span>
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-sm">Day 21</h5>
+                      <p className="text-xs opacity-80">
+                        Reassessment scan to evaluate progress
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="vertical-timeline-item">
-                    <h5 className="font-bold text-sm">Day 45</h5>
-                    <p className="text-xs opacity-80">
-                      Expected date of full meridian rebalancing
-                    </p>
+                  <div className="flex items-start">
+                    <div className="w-6 h-6 rounded-full gradient-bg flex items-center justify-center mr-3">
+                      <span className="text-xs">5</span>
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-sm">Day 45</h5>
+                      <p className="text-xs opacity-80">
+                        Expected date of full meridian rebalancing
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-gray-800">

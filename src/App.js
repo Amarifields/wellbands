@@ -5,6 +5,8 @@ import About from "./components/About";
 import Connect from "./components/Contact";
 import Careers from "./components/Career";
 import Dashboard from "./components/Dashboard";
+import Relax from "./components/RelaxPortal";
+import Guide from "./components/HarmonyGuide";
 import ScrollToTop from "./components/ScrollToTop";
 
 function App() {
@@ -19,6 +21,8 @@ function App() {
         <Route path="/connect" element={<Connect />} />
         <Route path="/career" element={<Careers />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/reset" element={<Relax />} />
+        {/* } <Route path="/guide" element={<Guide />} /> */}
         <Route path="/home" element={<Navigate to="/" replace />} />
       </Routes>
     </>

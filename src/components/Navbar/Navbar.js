@@ -31,6 +31,7 @@ const Navbar = ({ whiteBg = false }) => {
   const navItems = [
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
+    { name: "Reset", path: "/reset" },
     { name: "Connect", path: "/connect" },
     { name: "Careers", path: "/career" },
   ];
