@@ -44,19 +44,32 @@ const SacredGeometry = () => {
       isPlaying
     );
 
-    // Handle fullscreen changes
     const handleFullscreenChange = () => {
-      setIsFullscreen(document.fullscreenElement === containerRef.current);
+      setIsFullscreen(
+        document.fullscreenElement === containerRef.current ||
+          document.webkitFullscreenElement === containerRef.current ||
+          document.mozFullScreenElement === containerRef.current ||
+          document.msFullscreenElement === containerRef.current
+      );
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    // For Safari
     document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
 
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       document.removeEventListener(
         "webkitfullscreenchange",
+        handleFullscreenChange
+      );
+      document.removeEventListener(
+        "mozfullscreenchange",
+        handleFullscreenChange
+      );
+      document.removeEventListener(
+        "MSFullscreenChange",
         handleFullscreenChange
       );
       visualizerRef.current?.destroy();
@@ -85,52 +98,40 @@ const SacredGeometry = () => {
   }, [isPlaying]);
 
   const toggleFullscreen = () => {
-    if (!isFullscreen) {
-      const element = containerRef.current;
+    const el = containerRef.current;
 
-      // Try standard fullscreen API
-      if (element.requestFullscreen) {
-        element.requestFullscreen().catch((err) => {
-          console.error(
-            `Error attempting to enable fullscreen: ${err.message}`
-          );
-        });
-      }
-      // For Safari
-      else if (element.webkitRequestFullscreen) {
-        element.webkitRequestFullscreen();
-      }
-      // For Firefox
-      else if (element.mozRequestFullScreen) {
-        element.mozRequestFullScreen();
-      }
-      // For MS browsers
-      else if (element.msRequestFullscreen) {
-        element.msRequestFullscreen();
+    if (!isFullscreen) {
+      // Try standard/fullscreen API with all prefixes
+      if (el.requestFullscreen) {
+        el.requestFullscreen().catch((err) =>
+          console.error(`Error entering fullscreen: ${err.message}`)
+        );
+      } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen(); // Safari
+      } else if (el.mozRequestFullScreen) {
+        el.mozRequestFullScreen(); // Firefox
+      } else if (el.msRequestFullscreen) {
+        el.msRequestFullscreen(); // IE/Edge
+      } else {
+        // Fallback for browsers that don’t support fullscreen (e.g. iOS Safari)
+        el.classList.add("forced-fullscreen");
+        setIsFullscreen(true);
       }
     } else {
-      // Exit fullscreen
+      // Exit fullscreen via API or CSS fallback
       if (document.exitFullscreen) {
         document.exitFullscreen();
-      }
-      // For Safari
-      else if (document.webkitExitFullscreen) {
+      } else if (document.webkitExitFullscreen) {
         document.webkitExitFullscreen();
-      }
-      // For Firefox
-      else if (document.mozCancelFullScreen) {
+      } else if (document.mozCancelFullScreen) {
         document.mozCancelFullScreen();
-      }
-      // For MS browsers
-      else if (document.msExitFullscreen) {
+      } else if (document.msExitFullscreen) {
         document.msExitFullscreen();
+      } else {
+        containerRef.current.classList.remove("forced-fullscreen");
+        setIsFullscreen(false);
       }
     }
-  };
-
-  // Helper function to check if device is mobile/tablet
-  const isMobileDevice = () => {
-    return window.innerWidth <= 768;
   };
 
   return (
@@ -200,32 +201,30 @@ const SacredGeometry = () => {
             </div>
           )}
 
-          {/* Floating controls in fullscreen mode - more visible on mobile */}
+          {/* Floating controls in fullscreen mode */}
           {isFullscreen && (
-            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 bg-black/60 backdrop-blur-md rounded-full p-3 flex space-x-4 shadow-lg">
+            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 bg-black/60 backdrop-blur-md rounded-full p-2 flex space-x-3">
               <button
                 onClick={() => setIsPlaying(!isPlaying)}
-                className="w-12 h-12 rounded-full flex items-center justify-center text-white bg-cyan-800/40 hover:bg-cyan-800/60 active:bg-cyan-800/80"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white bg-cyan-800/30 hover:bg-cyan-800/50"
               >
-                <i
-                  className={`fas fa-${isPlaying ? "pause" : "play"} text-lg`}
-                ></i>
+                <i className={`fas fa-${isPlaying ? "pause" : "play"}`}></i>
               </button>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1">
                 <button
                   onClick={() => setSpeed(Math.max(0.5, speed - 0.25))}
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white bg-cyan-800/40 hover:bg-cyan-800/60 active:bg-cyan-800/80"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white bg-cyan-800/30 hover:bg-cyan-800/50"
                   disabled={speed <= 0.5}
                 >
                   <i className="fas fa-minus"></i>
                 </button>
-                <div className="text-white w-12 text-center text-base font-medium">
+                <div className="text-white w-10 text-center text-sm">
                   {speed.toFixed(1)}x
                 </div>
                 <button
                   onClick={() => setSpeed(Math.min(2, speed + 0.25))}
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white bg-cyan-800/40 hover:bg-cyan-800/60 active:bg-cyan-800/80"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white bg-cyan-800/30 hover:bg-cyan-800/50"
                   disabled={speed >= 2}
                 >
                   <i className="fas fa-plus"></i>
@@ -234,34 +233,30 @@ const SacredGeometry = () => {
 
               <button
                 onClick={toggleFullscreen}
-                className="w-12 h-12 rounded-full flex items-center justify-center text-white bg-cyan-800/40 hover:bg-cyan-800/60 active:bg-cyan-800/80 shadow-lg"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white bg-cyan-800/30 hover:bg-cyan-800/50"
               >
-                <i className="fas fa-compress text-lg"></i>
+                <i className="fas fa-compress"></i>
               </button>
             </div>
           )}
         </div>
 
-        {/* Controls for non-fullscreen mode - more visible on mobile */}
-        <div className="absolute top-4 right-4 z-10 flex space-x-3">
+        {/* Controls for non-fullscreen mode */}
+        <div className="absolute top-4 right-4 z-10 flex space-x-2">
           <button
             onClick={() => setIsPlaying(!isPlaying)}
-            className="bg-black/60 hover:bg-black/80 active:bg-cyan-900/60 rounded-full w-12 h-12 flex items-center justify-center text-white backdrop-blur-sm shadow-lg"
+            className="bg-black/50 hover:bg-black/70 rounded-full w-10 h-10 flex items-center justify-center text-white backdrop-blur-sm"
             title={isPlaying ? "Pause Animation" : "Play Animation"}
           >
-            <i className={`fas fa-${isPlaying ? "pause" : "play"} text-lg`}></i>
+            <i className={`fas fa-${isPlaying ? "pause" : "play"}`}></i>
           </button>
 
           <button
             onClick={toggleFullscreen}
-            className="bg-black/60 hover:bg-black/80 active:bg-cyan-900/60 rounded-full w-12 h-12 flex items-center justify-center text-white backdrop-blur-sm shadow-lg"
+            className="bg-black/50 hover:bg-black/70 rounded-full w-10 h-10 flex items-center justify-center text-white backdrop-blur-sm"
             title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
           >
-            <i
-              className={`fas fa-${
-                isFullscreen ? "compress" : "expand"
-              } text-lg`}
-            ></i>
+            <i className={`fas fa-${isFullscreen ? "compress" : "expand"}`}></i>
           </button>
         </div>
       </div>
@@ -281,9 +276,19 @@ const SacredGeometry = () => {
                     : "opacity-70 hover:opacity-100"
                 }`}
               >
-                {/* Pattern preview thumbnails - fallback to icons if images not available */}
+                {/* Pattern preview thumbnails */}
                 <div className="absolute inset-0 bg-black/50"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
+                <img
+                  src={`/assets/geometry-${pattern}.webp`}
+                  alt={patternInfo[pattern].title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback if image doesn't exist
+                    e.target.style.display = "none";
+                    e.target.nextSibling.style.display = "flex";
+                  }}
+                />
+                <div className="absolute inset-0 hidden items-center justify-center">
                   <i
                     className={`fas fa-${
                       pattern === "flower"
@@ -314,7 +319,7 @@ const SacredGeometry = () => {
             <div className="flex items-center">
               <button
                 onClick={() => setSpeed(Math.max(0.5, speed - 0.25))}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-cyan-400 bg-cyan-900/20 hover:bg-cyan-900/40 active:bg-cyan-900/60"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-cyan-400 bg-cyan-900/20 hover:bg-cyan-900/40"
                 disabled={speed <= 0.5}
               >
                 <i className="fas fa-minus"></i>
@@ -324,7 +329,7 @@ const SacredGeometry = () => {
               </div>
               <button
                 onClick={() => setSpeed(Math.min(2, speed + 0.25))}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-cyan-400 bg-cyan-900/20 hover:bg-cyan-900/40 active:bg-cyan-900/60"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-cyan-400 bg-cyan-900/20 hover:bg-cyan-900/40"
                 disabled={speed >= 2}
               >
                 <i className="fas fa-plus"></i>
@@ -334,8 +339,17 @@ const SacredGeometry = () => {
         </div>
       </div>
 
-      {/* CSS for animations and fullscreen */}
+      {/* Add some CSS for animations */}
       <style jsx>{`
+        .forced-fullscreen {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          aspect-ratio: unset !important;
+          z-index: 9999 !important;
+        }
         @keyframes fadeIn {
           from {
             opacity: 0;
@@ -349,25 +363,12 @@ const SacredGeometry = () => {
         .animate-fadeIn {
           animation: fadeIn 0.3s ease-out forwards;
         }
-
-        /* Fullscreen styles */
-        :global(.geometry-container:-webkit-full-screen) {
-          width: 100vw !important;
-          height: 100vh !important;
-          aspect-ratio: unset !important;
-        }
-
-        :global(.geometry-container:fullscreen) {
-          width: 100vw !important;
-          height: 100vh !important;
-          aspect-ratio: unset !important;
-        }
       `}</style>
     </div>
   );
 };
 
-// Improved Visualizer Class with fixes for mobile
+// Improved Visualizer Class
 class GeometryVisualizer {
   constructor(
     container,
@@ -392,38 +393,6 @@ class GeometryVisualizer {
     this.canvas.className = "geometry-canvas absolute inset-0 w-full h-full";
     this.container.appendChild(this.canvas);
 
-    // Create minimize button
-    this.minimizeBtn = document.createElement("button");
-    this.minimizeBtn.className = "minimize-btn";
-    this.minimizeBtn.innerHTML = '<i class="fas fa-compress"></i>';
-    this.minimizeBtn.title = "Exit Fullscreen";
-    this.minimizeBtn.style.display = "none";
-
-    // Apply styles for better visibility on mobile
-    this.minimizeBtn.style.position = "absolute";
-    this.minimizeBtn.style.top = "20px";
-    this.minimizeBtn.style.right = "20px";
-    this.minimizeBtn.style.width = "50px"; // Larger for mobile touch targets
-    this.minimizeBtn.style.height = "50px"; // Larger for mobile touch targets
-    this.minimizeBtn.style.borderRadius = "50%";
-    this.minimizeBtn.style.background = "rgba(0, 0, 0, 0.6)";
-    this.minimizeBtn.style.border = "2px solid rgba(0, 184, 212, 0.6)";
-    this.minimizeBtn.style.color = "white";
-    this.minimizeBtn.style.fontSize = "20px";
-    this.minimizeBtn.style.display = "flex";
-    this.minimizeBtn.style.alignItems = "center";
-    this.minimizeBtn.style.justifyContent = "center";
-    this.minimizeBtn.style.cursor = "pointer";
-    this.minimizeBtn.style.zIndex = "1000";
-    this.minimizeBtn.style.boxShadow = "0 0 10px rgba(0,0,0,0.5)";
-
-    this.container.appendChild(this.minimizeBtn);
-
-    // Event listener for minimize button
-    this.minimizeBtn.addEventListener("click", () => {
-      this.exitFullscreen();
-    });
-
     this.ctx = this.canvas.getContext("2d");
     this.time = 0;
     this.activePattern = initialPattern;
@@ -439,49 +408,11 @@ class GeometryVisualizer {
     // Start animation
     this.animate();
 
-    // Setup fullscreen change listeners
-    this.setupFullscreenListeners();
-  }
-
-  setupFullscreenListeners() {
-    // Standard fullscreen change event
+    // Set up fullscreen change listener
     document.addEventListener(
       "fullscreenchange",
       this.onFullscreenChange.bind(this)
     );
-
-    // Webkit (Safari, older Chrome)
-    document.addEventListener(
-      "webkitfullscreenchange",
-      this.onFullscreenChange.bind(this)
-    );
-
-    // Mozilla (Firefox)
-    document.addEventListener(
-      "mozfullscreenchange",
-      this.onFullscreenChange.bind(this)
-    );
-
-    // Microsoft
-    document.addEventListener(
-      "MSFullscreenChange",
-      this.onFullscreenChange.bind(this)
-    );
-  }
-
-  exitFullscreen() {
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
-    } else if (document.webkitExitFullscreen) {
-      // Safari
-      document.webkitExitFullscreen();
-    } else if (document.mozCancelFullScreen) {
-      // Firefox
-      document.mozCancelFullScreen();
-    } else if (document.msExitFullscreen) {
-      // IE/Edge
-      document.msExitFullscreen();
-    }
   }
 
   resize() {
@@ -492,44 +423,22 @@ class GeometryVisualizer {
     const rect = this.container.getBoundingClientRect();
 
     // Adjust canvas size
-    if (
-      document.fullscreenElement === this.container ||
-      document.webkitFullscreenElement === this.container ||
-      document.mozFullScreenElement === this.container ||
-      document.msFullscreenElement === this.container
-    ) {
+    if (document.fullscreenElement === this.container) {
       this.canvas.width = window.innerWidth * dpr;
       this.canvas.height = window.innerHeight * dpr;
-
-      // Make minimize button visible in fullscreen
-      if (this.minimizeBtn) {
-        this.minimizeBtn.style.display = "flex";
-      }
     } else {
       this.canvas.width = rect.width * dpr;
       this.canvas.height = rect.height * dpr;
-
-      // Hide minimize button when not in fullscreen
-      if (this.minimizeBtn) {
-        this.minimizeBtn.style.display = "none";
-      }
     }
 
     // Set display size (CSS)
     this.canvas.style.width = `${
-      document.fullscreenElement === this.container ||
-      document.webkitFullscreenElement === this.container ||
-      document.mozFullScreenElement === this.container ||
-      document.msFullscreenElement === this.container
+      document.fullscreenElement === this.container
         ? window.innerWidth
         : rect.width
     }px`;
-
     this.canvas.style.height = `${
-      document.fullscreenElement === this.container ||
-      document.webkitFullscreenElement === this.container ||
-      document.mozFullScreenElement === this.container ||
-      document.msFullscreenElement === this.container
+      document.fullscreenElement === this.container
         ? window.innerHeight
         : rect.height
     }px`;
@@ -549,23 +458,9 @@ class GeometryVisualizer {
   }
 
   onFullscreenChange() {
-    const isFullscreen =
-      document.fullscreenElement === this.container ||
-      document.webkitFullscreenElement === this.container ||
-      document.mozFullScreenElement === this.container ||
-      document.msFullscreenElement === this.container;
-
-    // Update React state through callback
     if (this.setFullscreenState) {
-      this.setFullscreenState(isFullscreen);
+      this.setFullscreenState(document.fullscreenElement === this.container);
     }
-
-    // Update minimize button visibility
-    if (this.minimizeBtn) {
-      this.minimizeBtn.style.display = isFullscreen ? "flex" : "none";
-    }
-
-    // Resize canvas after a short delay to ensure proper dimensions
     setTimeout(() => this.resize(), 100);
   }
 
@@ -772,6 +667,7 @@ class GeometryVisualizer {
           { x: (size * altScale) / 2, y: altHeight / 2, z: i * 10 + 5 },
           { x: -(size * altScale) / 2, y: altHeight / 2, z: i * 10 + 5 },
         ];
+
         const altPoints2D = altPoints3D.map((p) => {
           const rotated = {
             x: p.x * Math.cos(altRotation) - p.y * Math.sin(altRotation),
@@ -1005,32 +901,12 @@ class GeometryVisualizer {
   // Clean up resources when component unmounts
   destroy() {
     // Remove event listeners
-    window.removeEventListener("resize", this.resize.bind(this));
-    document.removeEventListener(
-      "fullscreenchange",
-      this.onFullscreenChange.bind(this)
-    );
-    document.removeEventListener(
-      "webkitfullscreenchange",
-      this.onFullscreenChange.bind(this)
-    );
-    document.removeEventListener(
-      "mozfullscreenchange",
-      this.onFullscreenChange.bind(this)
-    );
-    document.removeEventListener(
-      "MSFullscreenChange",
-      this.onFullscreenChange.bind(this)
-    );
+    window.removeEventListener("resize", this.resize);
+    document.removeEventListener("fullscreenchange", this.onFullscreenChange);
 
     // Cancel animation
     if (this.animationFrame) {
       cancelAnimationFrame(this.animationFrame);
-    }
-
-    // Remove the minimize button if it exists
-    if (this.minimizeBtn && this.minimizeBtn.parentNode) {
-      this.minimizeBtn.parentNode.removeChild(this.minimizeBtn);
     }
   }
 }
