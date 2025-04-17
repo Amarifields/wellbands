@@ -466,9 +466,9 @@ const FrequencyPlayer = forwardRef((props, ref) => {
 
   return (
     <div className="w-full bg-black bg-opacity-20 rounded-lg overflow-hidden">
-      {/* Layout that adapts to different screen sizes */}
-      <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* First column: Visualizer and player controls */}
+      {/* Single column layout for better consistency across all devices */}
+      <div className="p-4 md:p-6 space-y-6">
+        {/* Frequency Therapy section */}
         <div className="space-y-4">
           {/* Header */}
           <h3 className="font-medium text-white text-lg mb-2">
@@ -565,14 +565,14 @@ const FrequencyPlayer = forwardRef((props, ref) => {
           </div>
         </div>
 
-        {/* Second column: Track selection */}
+        {/* Frequency Selection section */}
         <div className="space-y-4">
           <h3 className="font-medium text-white text-lg mb-2">
             Frequency Selection
           </h3>
 
-          {/* Track selection buttons - responsive grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {/* Track selection buttons - with responsive grid that adapts to screen sizes */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {Object.entries(tracks).map(([key, track]) => (
               <button
                 key={key}
@@ -645,6 +645,41 @@ const FrequencyPlayer = forwardRef((props, ref) => {
             : "Speaker mode is optimized for playing through speakers on any device."}
         </span>
       </div>
+
+      {/* CSS for better styling on mobile/tablet */}
+      <style jsx>{`
+        /* Override range input styling for better appearance */
+        input[type="range"] {
+          -webkit-appearance: none;
+          height: 6px;
+          border-radius: 3px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #00b8d4;
+          cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #00b8d4;
+          cursor: pointer;
+          border: none;
+        }
+
+        /* Responsive tweaks */
+        @media (max-width: 640px) {
+          .grid-cols-2 {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </div>
   );
 });
