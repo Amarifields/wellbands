@@ -44,34 +44,15 @@ const SacredGeometry = () => {
       isPlaying
     );
 
+    // Handle fullscreen changes
     const handleFullscreenChange = () => {
-      setIsFullscreen(
-        document.fullscreenElement === containerRef.current ||
-          document.webkitFullscreenElement === containerRef.current ||
-          document.mozFullScreenElement === containerRef.current ||
-          document.msFullscreenElement === containerRef.current
-      );
+      setIsFullscreen(document.fullscreenElement === containerRef.current);
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
-    document.addEventListener("mozfullscreenchange", handleFullscreenChange);
-    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
 
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
-      document.removeEventListener(
-        "webkitfullscreenchange",
-        handleFullscreenChange
-      );
-      document.removeEventListener(
-        "mozfullscreenchange",
-        handleFullscreenChange
-      );
-      document.removeEventListener(
-        "MSFullscreenChange",
-        handleFullscreenChange
-      );
       visualizerRef.current?.destroy();
     };
   }, []);
@@ -98,39 +79,12 @@ const SacredGeometry = () => {
   }, [isPlaying]);
 
   const toggleFullscreen = () => {
-    const el = containerRef.current;
-
     if (!isFullscreen) {
-      // Try standard/fullscreen API with all prefixes
-      if (el.requestFullscreen) {
-        el.requestFullscreen().catch((err) =>
-          console.error(`Error entering fullscreen: ${err.message}`)
-        );
-      } else if (el.webkitRequestFullscreen) {
-        el.webkitRequestFullscreen(); // Safari
-      } else if (el.mozRequestFullScreen) {
-        el.mozRequestFullScreen(); // Firefox
-      } else if (el.msRequestFullscreen) {
-        el.msRequestFullscreen(); // IE/Edge
-      } else {
-        // Fallback for browsers that don’t support fullscreen (e.g. iOS Safari)
-        el.classList.add("forced-fullscreen");
-        setIsFullscreen(true);
-      }
+      containerRef.current.requestFullscreen().catch((err) => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
     } else {
-      // Exit fullscreen via API or CSS fallback
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      } else if (document.mozCancelFullScreen) {
-        document.mozCancelFullScreen();
-      } else if (document.msExitFullscreen) {
-        document.msExitFullscreen();
-      } else {
-        containerRef.current.classList.remove("forced-fullscreen");
-        setIsFullscreen(false);
-      }
+      document.exitFullscreen();
     }
   };
 
@@ -341,15 +295,6 @@ const SacredGeometry = () => {
 
       {/* Add some CSS for animations */}
       <style jsx>{`
-        .forced-fullscreen {
-          position: fixed !important;
-          top: 0 !important;
-          left: 0 !important;
-          width: 100vw !important;
-          height: 100vh !important;
-          aspect-ratio: unset !important;
-          z-index: 9999 !important;
-        }
         @keyframes fadeIn {
           from {
             opacity: 0;
