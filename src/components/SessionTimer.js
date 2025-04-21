@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import ReactGA from "react-ga4";
 
 const SessionTimer = ({ onComplete, audioEnabled = true }) => {
   const [totalSeconds, setTotalSeconds] = useState(0);
@@ -33,6 +34,27 @@ const SessionTimer = ({ onComplete, audioEnabled = true }) => {
     { value: 15, label: "15 min", description: "Deep focus" },
     { value: 30, label: "30 min", description: "Full session" },
   ];
+
+  // Add tracking when a timer completes
+  useEffect(() => {
+    if (
+      remainingSeconds === 0 &&
+      totalSeconds > 0 &&
+      !active &&
+      !timerRef.current
+    ) {
+      // Only track completion when timer actually finished (not when manually stopped)
+      ReactGA.event({
+        category: "Session Timer",
+        action: "Timer Complete",
+        label: `${Math.floor(totalSeconds / 60)} minutes`,
+        value: Math.floor(totalSeconds / 60), // Duration in minutes as value
+      });
+
+      // Call onComplete callback
+      onComplete?.();
+    }
+  }, [remainingSeconds, active, totalSeconds, onComplete]);
 
   // Create audio context for pleasant timer sounds
   useEffect(() => {
@@ -212,11 +234,29 @@ const SessionTimer = ({ onComplete, audioEnabled = true }) => {
   // Start or stop the timer
   const startStop = () => {
     if (active) {
+      // Stopping the timer
+      ReactGA.event({
+        category: "Session Timer",
+        action: "Timer Stop",
+        label: `${Math.floor(totalSeconds / 60)} min - ${Math.floor(
+          remainingSeconds / 60
+        )} min remaining`,
+        value: Math.floor((totalSeconds - remainingSeconds) / 60), // Minutes elapsed
+      });
+
       clearInterval(timerRef.current);
       setActive(false);
       setPaused(false);
       setRemainingSeconds(totalSeconds);
     } else if (totalSeconds > 0) {
+      // Starting the timer
+      ReactGA.event({
+        category: "Session Timer",
+        action: "Timer Start",
+        label: `${Math.floor(totalSeconds / 60)} min`,
+        value: Math.floor(totalSeconds / 60), // Duration in minutes
+      });
+
       setActive(true);
       setPaused(false);
     }
@@ -225,16 +265,38 @@ const SessionTimer = ({ onComplete, audioEnabled = true }) => {
   // Toggle pause state
   const togglePause = () => {
     if (!active) return;
-    setPaused((p) => !p);
+
+    const newPausedState = !paused;
+    setPaused(newPausedState);
+
+    ReactGA.event({
+      category: "Session Timer",
+      action: newPausedState ? "Timer Pause" : "Timer Resume",
+      label: `${Math.floor(totalSeconds / 60)} min session - ${Math.floor(
+        remainingSeconds / 60
+      )} min remaining`,
+    });
   };
 
   // Select a preset time
   const selectTime = (minutes) => {
     if (active) return;
+
     const secs = minutes * 60;
-    setTotalSeconds(secs);
-    setRemainingSeconds(secs);
-    setShowCustomInput(false);
+
+    // Only track if actually changing the duration
+    if (totalSeconds !== secs) {
+      ReactGA.event({
+        category: "Session Timer",
+        action: "Duration Selection",
+        label: `${minutes} min`,
+        value: minutes,
+      });
+
+      setTotalSeconds(secs);
+      setRemainingSeconds(secs);
+      setShowCustomInput(false);
+    }
   };
 
   // Set custom time
@@ -245,6 +307,14 @@ const SessionTimer = ({ onComplete, audioEnabled = true }) => {
     if (isNaN(minutes) || minutes < 1) return;
 
     const secs = Math.min(180, minutes) * 60; // Max 3 hours
+
+    ReactGA.event({
+      category: "Session Timer",
+      action: "Custom Duration Set",
+      label: `${minutes} min`,
+      value: minutes,
+    });
+
     setTotalSeconds(secs);
     setRemainingSeconds(secs);
     setShowCustomInput(false);
@@ -288,6 +358,13 @@ const SessionTimer = ({ onComplete, audioEnabled = true }) => {
             <button
               className="text-cyan-300 hover:text-cyan-400 transition-colors bg-cyan-800/20 hover:bg-cyan-800/30 rounded-full w-8 h-8 flex items-center justify-center"
               title="View recent sessions"
+              onClick={() => {
+                // Track history view
+                ReactGA.event({
+                  category: "Session Timer",
+                  action: "View History",
+                });
+              }}
             >
               <i className="fas fa-history"></i>
             </button>
@@ -403,7 +480,13 @@ const SessionTimer = ({ onComplete, audioEnabled = true }) => {
                   Set
                 </button>
                 <button
-                  onClick={() => setShowCustomInput(false)}
+                  onClick={() => {
+                    setShowCustomInput(false);
+                    ReactGA.event({
+                      category: "Session Timer",
+                      action: "Cancel Custom Duration",
+                    });
+                  }}
                   className="px-3 py-2 bg-gray-800/40 text-gray-300 border border-gray-700/50 rounded-lg hover:bg-gray-800/60"
                   disabled={active}
                 >
@@ -412,7 +495,13 @@ const SessionTimer = ({ onComplete, audioEnabled = true }) => {
               </div>
             ) : (
               <button
-                onClick={() => setShowCustomInput(true)}
+                onClick={() => {
+                  setShowCustomInput(true);
+                  ReactGA.event({
+                    category: "Session Timer",
+                    action: "Show Custom Duration Input",
+                  });
+                }}
                 className={`w-full py-2 px-3 flex items-center justify-center space-x-2 border rounded-lg transition-all duration-200 ${
                   isCustomDuration && !active
                     ? "bg-cyan-600/30 text-white border-cyan-500/50"

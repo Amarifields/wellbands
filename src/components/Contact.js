@@ -28,12 +28,12 @@ const Contact = () => {
 
     try {
       const response = await axios.post(
-        "https://wellbands-backend.onrender.com/send-email/",
+        "https://wellbands-backend.onrender.com/send-email", // No trailing slash
         {
           name: `${formData.firstName} ${formData.lastName}`,
           text: formData.message,
           sender_email: formData.email,
-          recipient: "support@wellbands.com",
+          // Don't include recipient - use hardcoded value on server for security
         }
       );
 
@@ -47,7 +47,10 @@ const Contact = () => {
         });
       }
     } catch (error) {
-      console.error("Sending message failed:", error);
+      console.error(
+        "Sending message failed:",
+        error.response?.data || error.message
+      );
       setErrorMessage("Failed to send message. Please try again later.");
     } finally {
       setIsSubmitting(false);

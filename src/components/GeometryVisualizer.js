@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import ReactGA from "react-ga4";
 
 const SacredGeometry = () => {
   const [activePattern, setActivePattern] = useState("flower");
@@ -8,6 +9,60 @@ const SacredGeometry = () => {
   const [showInfo, setShowInfo] = useState(false);
   const containerRef = useRef(null);
   const visualizerRef = useRef(null);
+
+  // Add GA tracking when pattern changes
+  const handlePatternChange = (pattern) => {
+    setActivePattern(pattern);
+
+    // Track pattern selection in GA
+    ReactGA.event({
+      category: "Sacred Geometry",
+      action: "Pattern Selection",
+      label:
+        pattern === "flower"
+          ? "Flower of Life"
+          : pattern === "sri-yantra"
+          ? "Sri Yantra"
+          : "Vesica Piscis",
+    });
+  };
+
+  // Track speed changes
+  const handleSpeedChange = (newSpeed) => {
+    setSpeed(newSpeed);
+
+    // Track speed change in GA
+    ReactGA.event({
+      category: "Sacred Geometry",
+      action: "Speed Change",
+      label: newSpeed.toFixed(1) + "x",
+    });
+  };
+
+  // Track play/pause
+  const togglePlayPause = () => {
+    const newState = !isPlaying;
+    setIsPlaying(newState);
+
+    // Track play/pause in GA
+    ReactGA.event({
+      category: "Sacred Geometry",
+      action: newState ? "Play" : "Pause",
+    });
+  };
+
+  // Track info toggle
+  const toggleInfo = () => {
+    const newInfoState = !showInfo;
+    setShowInfo(newInfoState);
+
+    // Track info view in GA
+    ReactGA.event({
+      category: "Sacred Geometry",
+      action: "Info Toggle",
+      label: newInfoState ? "Show Info" : "Hide Info",
+    });
+  };
 
   // Pattern information for educational tooltips
   const patternInfo = {
@@ -86,6 +141,13 @@ const SacredGeometry = () => {
     } else {
       document.exitFullscreen();
     }
+
+    // Track fullscreen in GA
+    ReactGA.event({
+      category: "Sacred Geometry",
+      action: "Fullscreen Toggle",
+      label: !isFullscreen ? "Enter Fullscreen" : "Exit Fullscreen",
+    });
   };
 
   return (
@@ -98,7 +160,7 @@ const SacredGeometry = () => {
         </h2>
 
         <button
-          onClick={() => setShowInfo(!showInfo)}
+          onClick={toggleInfo} // Use the tracking function instead
           className="text-cyan-300 hover:text-cyan-400 transition-colors bg-cyan-800/20 hover:bg-cyan-800/30 rounded-full w-8 h-8 flex items-center justify-center"
           aria-label="Show information"
           title="What is Sacred Geometry?"
@@ -147,7 +209,7 @@ const SacredGeometry = () => {
           {!isPlaying && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10 backdrop-blur-sm">
               <button
-                onClick={() => setIsPlaying(true)}
+                onClick={togglePlayPause} // Use the tracking function
                 className="bg-cyan-500/20 hover:bg-cyan-500/30 transition-all p-6 rounded-full text-white"
               >
                 <i className="fas fa-play text-2xl"></i>
@@ -159,7 +221,7 @@ const SacredGeometry = () => {
           {isFullscreen && (
             <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 bg-black/60 backdrop-blur-md rounded-full p-2 flex space-x-3">
               <button
-                onClick={() => setIsPlaying(!isPlaying)}
+                onClick={togglePlayPause} // Use the tracking function
                 className="w-10 h-10 rounded-full flex items-center justify-center text-white bg-cyan-800/30 hover:bg-cyan-800/50"
               >
                 <i className={`fas fa-${isPlaying ? "pause" : "play"}`}></i>
@@ -167,7 +229,7 @@ const SacredGeometry = () => {
 
               <div className="flex items-center space-x-1">
                 <button
-                  onClick={() => setSpeed(Math.max(0.5, speed - 0.25))}
+                  onClick={() => handleSpeedChange(Math.max(0.5, speed - 0.25))} // Use the tracking function
                   className="w-8 h-8 rounded-full flex items-center justify-center text-white bg-cyan-800/30 hover:bg-cyan-800/50"
                   disabled={speed <= 0.5}
                 >
@@ -177,7 +239,7 @@ const SacredGeometry = () => {
                   {speed.toFixed(1)}x
                 </div>
                 <button
-                  onClick={() => setSpeed(Math.min(2, speed + 0.25))}
+                  onClick={() => handleSpeedChange(Math.min(2, speed + 0.25))} // Use the tracking function
                   className="w-8 h-8 rounded-full flex items-center justify-center text-white bg-cyan-800/30 hover:bg-cyan-800/50"
                   disabled={speed >= 2}
                 >
@@ -186,7 +248,7 @@ const SacredGeometry = () => {
               </div>
 
               <button
-                onClick={toggleFullscreen}
+                onClick={toggleFullscreen} // Use the tracking function
                 className="w-10 h-10 rounded-full flex items-center justify-center text-white bg-cyan-800/30 hover:bg-cyan-800/50"
               >
                 <i className="fas fa-compress"></i>
@@ -195,10 +257,10 @@ const SacredGeometry = () => {
           )}
         </div>
 
-        {/* Controls for non-fullscreen mode */}
+        {/* Non-fullscreen controls */}
         <div className="absolute top-4 right-4 z-10 flex space-x-2">
           <button
-            onClick={() => setIsPlaying(!isPlaying)}
+            onClick={togglePlayPause} // Use the tracking function
             className="bg-black/50 hover:bg-black/70 rounded-full w-10 h-10 flex items-center justify-center text-white backdrop-blur-sm"
             title={isPlaying ? "Pause Animation" : "Play Animation"}
           >
@@ -206,7 +268,7 @@ const SacredGeometry = () => {
           </button>
 
           <button
-            onClick={toggleFullscreen}
+            onClick={toggleFullscreen} // Use the tracking function
             className="bg-black/50 hover:bg-black/70 rounded-full w-10 h-10 flex items-center justify-center text-white backdrop-blur-sm"
             title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
           >
@@ -223,21 +285,20 @@ const SacredGeometry = () => {
             {Object.keys(patternInfo).map((pattern) => (
               <button
                 key={pattern}
-                onClick={() => setActivePattern(pattern)}
+                onClick={() => handlePatternChange(pattern)} // Use the tracking function
                 className={`relative rounded-lg overflow-hidden transition-all duration-300 aspect-video ${
                   activePattern === pattern
                     ? "ring-2 ring-cyan-400 shadow-lg shadow-cyan-900/50"
                     : "opacity-70 hover:opacity-100"
                 }`}
               >
-                {/* Pattern preview thumbnails */}
+                {/* Pattern preview content */}
                 <div className="absolute inset-0 bg-black/50"></div>
                 <img
                   src={`/assets/geometry-${pattern}.webp`}
                   alt={patternInfo[pattern].title}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    // Fallback if image doesn't exist
                     e.target.style.display = "none";
                     e.target.nextSibling.style.display = "flex";
                   }}
@@ -272,7 +333,7 @@ const SacredGeometry = () => {
             </label>
             <div className="flex items-center">
               <button
-                onClick={() => setSpeed(Math.max(0.5, speed - 0.25))}
+                onClick={() => handleSpeedChange(Math.max(0.5, speed - 0.25))} // Use the tracking function
                 className="w-8 h-8 rounded-full flex items-center justify-center text-cyan-400 bg-cyan-900/20 hover:bg-cyan-900/40"
                 disabled={speed <= 0.5}
               >
@@ -282,7 +343,7 @@ const SacredGeometry = () => {
                 {speed.toFixed(1)}x
               </div>
               <button
-                onClick={() => setSpeed(Math.min(2, speed + 0.25))}
+                onClick={() => handleSpeedChange(Math.min(2, speed + 0.25))} // Use the tracking function
                 className="w-8 h-8 rounded-full flex items-center justify-center text-cyan-400 bg-cyan-900/20 hover:bg-cyan-900/40"
                 disabled={speed >= 2}
               >

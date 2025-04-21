@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import ReactGA from "react-ga4";
 import Navbar from "./Navbar/Navbar";
 import Footer from "./Footer/Footer";
 import FrequencyPlayer from "./FrequencyPlayer";

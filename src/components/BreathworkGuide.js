@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import ReactGA from "react-ga4";
 
 // Enhanced breathing patterns with detailed instructions
 const breathingPatterns = {
@@ -238,6 +239,25 @@ const BreathworkGuide = () => {
     }
   };
 
+  // Add tracking for pattern selection
+  const handlePatternChange = (patternKey) => {
+    if (active) {
+      stop(); // Stop current session if running
+    }
+
+    // Skip if it's the same pattern
+    if (patternKey === pattern) return;
+
+    setPattern(patternKey);
+
+    // Track the pattern change
+    ReactGA.event({
+      category: "Guided Breathwork",
+      action: "Pattern Selection",
+      label: breathingPatterns[patternKey].name,
+    });
+  };
+
   // Start the breathing session
   const start = () => {
     if (active) return;
@@ -285,10 +305,39 @@ const BreathworkGuide = () => {
         moveToNextPhase();
       }
     }, firstPhaseDuration);
+
+    // Track session start
+    ReactGA.event({
+      category: "Guided Breathwork",
+      action: "Session Start",
+      label: breathingPatterns[pattern].name,
+    });
   };
+
+  // Track completed sessions
+  useEffect(() => {
+    // When a session completes all cycles for cycleCount patterns
+    const currentPattern = breathingPatterns[pattern];
+    if (currentPattern.rapidCycles && cycleCount >= currentPattern.cycleCount) {
+      ReactGA.event({
+        category: "Guided Breathwork",
+        action: "Session Complete",
+        label: `${currentPattern.name} - All ${cycleCount} cycles completed`,
+      });
+    }
+  }, [cycleCount, pattern]);
 
   // Stop the breathing session
   const stop = () => {
+    // Only track if currently active
+    if (active) {
+      ReactGA.event({
+        category: "Guided Breathwork",
+        action: "Session Stop",
+        label: `${breathingPatterns[pattern].name} - Cycles: ${cycleCount}`,
+      });
+    }
+
     // Update state
     setActive(false);
     activeRef.current = false;
@@ -308,6 +357,18 @@ const BreathworkGuide = () => {
     if (circleRef.current) {
       circleRef.current.style.animation = "none";
     }
+  };
+
+  // Track details panel toggle
+  const toggleDetails = () => {
+    const newState = !showDetails;
+    setShowDetails(newState);
+
+    ReactGA.event({
+      category: "Guided Breathwork",
+      action: "Info Toggle",
+      label: newState ? "Show Info" : "Hide Info",
+    });
   };
 
   // Cleanup on unmount
@@ -390,7 +451,7 @@ const BreathworkGuide = () => {
         </h2>
 
         <button
-          onClick={() => setShowDetails(!showDetails)}
+          onClick={toggleDetails} // Use tracking function
           className="text-cyan-300 hover:text-cyan-400 transition-colors bg-cyan-800/20 hover:bg-cyan-800/30 rounded-full w-8 h-8 flex items-center justify-center"
           aria-label="Show information"
           title="Breathing techniques info"
@@ -405,10 +466,7 @@ const BreathworkGuide = () => {
           {Object.entries(breathingPatterns).map(([key, data]) => (
             <button
               key={key}
-              onClick={() => {
-                if (active) stop();
-                setPattern(key);
-              }}
+              onClick={() => handlePatternChange(key)} // Use tracking function
               className={`relative rounded-lg py-2 px-3 flex-shrink-0 transition-all duration-300 ${
                 pattern === key
                   ? `bg-${data.color}-600/30 border border-${data.color}-500 text-white`
@@ -485,7 +543,7 @@ const BreathworkGuide = () => {
         <div className="flex flex-col w-full max-w-md gap-y-4">
           {/* Start/Stop Button */}
           <button
-            onClick={active ? stop : start}
+            onClick={active ? stop : start} // Use tracking functions
             className={`py-3 px-6 rounded-lg flex items-center justify-center transition-all font-medium ${
               active
                 ? "bg-gradient-to-r from-red-500/80 to-red-600/80 text-white"
