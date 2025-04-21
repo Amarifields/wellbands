@@ -7,45 +7,11 @@ import React, {
 } from "react";
 import ReactGA from "react-ga4";
 
-// Device detection helper function - moved outside component
-const detectHeadphones = () => {
-  // Default to speaker mode on mobile devices or tablets
-  const isMobileOrTablet =
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
-    );
-
-  // On mobile/tablet, default to non-binaural (speaker-friendly) mode
-  if (isMobileOrTablet) {
-    return false; // Use speaker mode (non-binaural)
-  }
-
-  // On desktop, we can assume headphones might be more common
-  return true; // Use binaural mode
-};
-
-// Audio context unlock function - moved outside component
-function unlockAudioContext(audioCtx) {
-  if (audioCtx && audioCtx.state === "suspended") {
-    const unlockFn = () => {
-      audioCtx.resume().then(() => {
-        document.body.removeEventListener("touchstart", unlockFn);
-        document.body.removeEventListener("touchend", unlockFn);
-        document.body.removeEventListener("click", unlockFn);
-      });
-    };
-
-    document.body.addEventListener("touchstart", unlockFn, false);
-    document.body.addEventListener("touchend", unlockFn, false);
-    document.body.addEventListener("click", unlockFn, false);
-  }
-}
-
 const FrequencyPlayer = forwardRef((props, ref) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [trackKey, setTrackKey] = useState("deepSleep");
-  const [volume, setVolume] = useState(0.5); // Increased default volume for better speaker output
-  const [useBinauralMode, setUseBinauralMode] = useState(detectHeadphones());
+  const [volume, setVolume] = useState(0.5); // Increased default volume for better audibility
+  const [useBinauralMode, setUseBinauralMode] = useState(true);
 
   const canvasRef = useRef(null);
   const audioContextRef = useRef(null);
@@ -53,8 +19,6 @@ const FrequencyPlayer = forwardRef((props, ref) => {
   const startTimeRef = useRef(0);
   const oscillatorsRef = useRef({ left: null, right: null, mono: null });
   const gainNodeRef = useRef(null);
-  const volumeUpdateTimeoutRef = useRef(null);
-  const lastRAF = useRef(null);
 
   // Expose methods via ref for external control (like SessionTimer)
   useImperativeHandle(ref, () => ({
@@ -83,19 +47,19 @@ const FrequencyPlayer = forwardRef((props, ref) => {
     },
   }));
 
-  // Enhanced tracks with DOUBLED frequencies for better speaker performance
+  // Enhanced tracks with adjusted frequency ranges for better speaker performance
   const tracks = {
     deepSleep: {
       label: "Deep Sleep",
-      freqs: [196, 200], // Original frequencies
-      monoFreq: 200, // Original frequency
-      beatFreq: 4,
+      freqs: [196, 200], // Higher frequencies for better speaker response
+      monoFreq: 200, // Base frequency for mono mode
+      beatFreq: 4, // Beat frequency (difference)
       help: "Helps you fall asleep quickly",
       color: "#3b82f6",
     },
     relaxation: {
       label: "Relaxation",
-      freqs: [210, 214], // Original frequencies
+      freqs: [210, 214],
       monoFreq: 212,
       beatFreq: 4,
       help: "Eases stress and tension",
@@ -103,7 +67,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
     },
     focus: {
       label: "Focus",
-      freqs: [300, 308], // Original frequencies
+      freqs: [300, 308],
       monoFreq: 304,
       beatFreq: 8,
       help: "Sharpens your concentration",
@@ -111,7 +75,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
     },
     energy: {
       label: "Energy Boost",
-      freqs: [250, 265], // Original frequencies
+      freqs: [250, 265],
       monoFreq: 256,
       beatFreq: 15,
       help: "Feel more awake and alert",
@@ -119,7 +83,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
     },
     grounding: {
       label: "Grounding Tone",
-      freqs: [432, 432], // Original frequencies
+      freqs: [432, 432],
       monoFreq: 432,
       beatFreq: 0,
       help: "Feel centered and calm",
@@ -127,7 +91,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
     },
     healing: {
       label: "Healing Tone",
-      freqs: [528, 528], // Original frequencies
+      freqs: [528, 528],
       monoFreq: 528,
       beatFreq: 0,
       help: "Promotes overall wellness",
@@ -135,10 +99,9 @@ const FrequencyPlayer = forwardRef((props, ref) => {
     },
   };
 
-  // Add tracking for play/pause
+  // Handle play/pause with tracking
   const togglePlayPause = () => {
     const newPlayState = !isPlaying;
-    setIsPlaying(newPlayState);
 
     // Track in Google Analytics
     ReactGA.event({
@@ -147,17 +110,12 @@ const FrequencyPlayer = forwardRef((props, ref) => {
       label: tracks[trackKey].label,
     });
 
-    // Reset the start time reference when toggling play state
-    if (newPlayState && audioContextRef.current) {
-      startTimeRef.current = audioContextRef.current.currentTime;
-    }
+    setIsPlaying(newPlayState);
   };
 
-  // Add tracking for frequency selection
+  // Handle frequency selection with tracking
   const handleFrequencySelection = (key) => {
     if (key === trackKey) return;
-
-    setTrackKey(key);
 
     // Track in Google Analytics
     ReactGA.event({
@@ -166,7 +124,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
       label: tracks[key].label,
     });
 
-    // If currently playing, track that the user changed while listening
+    // Track changes during playback
     if (isPlaying) {
       ReactGA.event({
         category: "Frequency Therapy",
@@ -174,13 +132,13 @@ const FrequencyPlayer = forwardRef((props, ref) => {
         label: `From: ${tracks[trackKey].label} To: ${tracks[key].label}`,
       });
     }
+
+    setTrackKey(key);
   };
 
-  // Add tracking for volume changes
+  // Handle volume changes with tracking
   const handleVolumeChange = (newVolume) => {
-    setVolume(newVolume);
-
-    // To avoid too many events, only track significant changes
+    // Track significant volume changes
     if (Math.abs(volume - newVolume) > 0.1) {
       ReactGA.event({
         category: "Frequency Therapy",
@@ -188,6 +146,20 @@ const FrequencyPlayer = forwardRef((props, ref) => {
         label: `${Math.round(newVolume * 100)}%`,
       });
     }
+
+    setVolume(newVolume);
+  };
+
+  // Handle output mode changes with tracking
+  const handleOutputModeChange = (useBinaural) => {
+    // Track in Google Analytics
+    ReactGA.event({
+      category: "Frequency Therapy",
+      action: "Output Mode Change",
+      label: useBinaural ? "Binaural" : "Speakers",
+    });
+
+    setUseBinauralMode(useBinaural);
   };
 
   // Audio setup - with both binaural and monaural modes
@@ -197,71 +169,17 @@ const FrequencyPlayer = forwardRef((props, ref) => {
 
     if (isPlaying) {
       try {
-        // Check if we already have an active audio context before creating a new one
-        if (
-          !audioContextRef.current ||
-          audioContextRef.current.state === "closed"
-        ) {
-          // Create a new context only if needed
-          const AudioContext = window.AudioContext || window.webkitAudioContext;
-          ctx = new AudioContext();
+        // Create audio context
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        audioContextRef.current = ctx;
 
-          // Special handling for Safari
-          if (
-            ctx.state === "suspended" &&
-            /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-          ) {
-            // Create a silent buffer and play it to "warm up" the audio context
-            const silentBuffer = ctx.createBuffer(1, 1, 22050);
-            const silentSource = ctx.createBufferSource();
-            silentSource.buffer = silentBuffer;
-            silentSource.connect(ctx.destination);
-            silentSource.start();
-          }
-
-          audioContextRef.current = ctx;
-          unlockAudioContext(ctx);
-        } else {
-          // Use the existing context
-          ctx = audioContextRef.current;
-
-          // If context was suspended, resume it
-          if (ctx.state === "suspended") {
-            ctx
-              .resume()
-              .catch((e) => console.warn("Could not resume AudioContext", e));
-          }
-
-          // Clean up any existing audio nodes before creating new ones
-          if (oscillatorsRef.current.left) {
-            try {
-              oscillatorsRef.current.left.stop();
-              oscillatorsRef.current.right?.stop();
-            } catch (e) {
-              console.warn("Error stopping oscillators", e);
-            }
-          }
-          if (oscillatorsRef.current.mono) {
-            try {
-              oscillatorsRef.current.mono.stop();
-            } catch (e) {
-              console.warn("Error stopping oscillator", e);
-            }
-          }
+        if (ctx.state === "suspended") {
+          ctx.resume();
         }
 
-        // Master gain node with boosted volume for better speaker output
+        // Master gain node
         gain = ctx.createGain();
-
-        // Apply amplification for speaker mode to ensure better audibility
-        const isMobileOrTablet =
-          /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-            navigator.userAgent
-          );
-        const volumeMultiplier =
-          !useBinauralMode && isMobileOrTablet ? 1.5 : 1.0;
-
-        gain.gain.setValueAtTime(volume * volumeMultiplier, ctx.currentTime);
+        gain.gain.setValueAtTime(volume, ctx.currentTime);
         gain.connect(ctx.destination);
         gainNodeRef.current = gain;
 
@@ -314,17 +232,6 @@ const FrequencyPlayer = forwardRef((props, ref) => {
           carrier.type = "sine";
           carrier.frequency.setValueAtTime(baseFreq, ctx.currentTime);
 
-          // Add a compressor to prevent clipping on speakers
-          const compressor = ctx.createDynamicsCompressor();
-          compressor.threshold.value = -24;
-          compressor.knee.value = 30;
-          compressor.ratio.value = 12;
-          compressor.attack.value = 0.003;
-          compressor.release.value = 0.25;
-
-          // Connect through compressor to prevent distortion
-          compressor.connect(gain);
-
           if (beatFreq > 0) {
             // Create amplitude modulation for the beat frequency
             const modulationGain = ctx.createGain();
@@ -335,7 +242,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
             lfo.frequency.setValueAtTime(beatFreq, ctx.currentTime);
             lfo.type = "sine";
 
-            // Map LFO output to gain range to create the pulsing effect
+            // Map LFO output (±1) to gain range (0.3 to 1) to create the pulsing effect
             const lfoGain = ctx.createGain();
             lfoGain.gain.setValueAtTime(0.5, ctx.currentTime); // Modulation depth
 
@@ -347,9 +254,9 @@ const FrequencyPlayer = forwardRef((props, ref) => {
             lfoGain.connect(modulationGain.gain);
             lfoOffset.connect(modulationGain.gain);
 
-            // Connect carrier through modulation and compressor
+            // Connect carrier through modulation
             carrier.connect(modulationGain);
-            modulationGain.connect(compressor);
+            modulationGain.connect(gain);
 
             // Start oscillators
             carrier.start();
@@ -359,7 +266,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
             audioNodes.push(carrier, lfo);
           } else {
             // Single frequency tone (no beat)
-            carrier.connect(compressor);
+            carrier.connect(gain);
             carrier.start();
             audioNodes.push(carrier);
           }
@@ -399,13 +306,9 @@ const FrequencyPlayer = forwardRef((props, ref) => {
 
       if (ctx) {
         try {
-          if (ctx.state !== "closed") {
-            ctx
-              .suspend()
-              .catch((e) => console.warn("Could not suspend audio context", e));
-          }
+          ctx.close();
         } catch (e) {
-          console.warn("Error suspending audio context:", e);
+          console.warn("Error closing audio context:", e);
         }
       }
 
@@ -415,42 +318,15 @@ const FrequencyPlayer = forwardRef((props, ref) => {
     };
   }, [isPlaying, trackKey, volume, useBinauralMode]);
 
-  // Update volume in real-time with debouncing to prevent freezing
+  // Update volume in real-time
   useEffect(() => {
-    // Clear any pending volume updates
-    if (volumeUpdateTimeoutRef.current) {
-      clearTimeout(volumeUpdateTimeoutRef.current);
+    if (isPlaying && gainNodeRef.current && audioContextRef.current) {
+      gainNodeRef.current.gain.setValueAtTime(
+        volume,
+        audioContextRef.current.currentTime
+      );
     }
-
-    // Debounce volume updates to prevent freezing
-    volumeUpdateTimeoutRef.current = setTimeout(() => {
-      if (isPlaying && gainNodeRef.current && audioContextRef.current) {
-        try {
-          // Apply amplification for speaker mode to ensure better audibility
-          const isMobileOrTablet =
-            /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-              navigator.userAgent
-            );
-          const volumeMultiplier =
-            !useBinauralMode && isMobileOrTablet ? 1.5 : 1.0;
-
-          // Safe volume update with error handling
-          gainNodeRef.current.gain.setValueAtTime(
-            volume * volumeMultiplier,
-            audioContextRef.current.currentTime
-          );
-        } catch (e) {
-          console.warn("Could not update volume", e);
-        }
-      }
-    }, 50); // 50ms debounce
-
-    return () => {
-      if (volumeUpdateTimeoutRef.current) {
-        clearTimeout(volumeUpdateTimeoutRef.current);
-      }
-    };
-  }, [volume, isPlaying, useBinauralMode]);
+  }, [volume, isPlaying]);
 
   // Visualizer effect
   const startVisualizer = () => {
@@ -471,11 +347,6 @@ const FrequencyPlayer = forwardRef((props, ref) => {
     const height = canvas.clientHeight;
 
     const drawVisualizer = () => {
-      // Track the last animation frame request to detect performance issues
-      if (lastRAF.current !== window.requestAnimationFrame) {
-        lastRAF.current = window.requestAnimationFrame;
-      }
-
       if (!isPlaying || !audioContextRef.current) {
         // Still draw something when not playing
         ctx.clearRect(0, 0, width, height);
@@ -486,36 +357,24 @@ const FrequencyPlayer = forwardRef((props, ref) => {
 
       ctx.clearRect(0, 0, width, height);
 
-      // Detect low-end devices and simplify visualization
-      const isMobileOrTablet =
-        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-          navigator.userAgent
-        );
-      const isLowEndDevice =
-        isMobileOrTablet &&
-        (navigator.hardwareConcurrency <= 4 || !navigator.hardwareConcurrency);
-
       // Create gradient based on current track color
       const trackColor = tracks[trackKey].color;
       const gradient = ctx.createLinearGradient(0, 0, width, height);
       gradient.addColorStop(0, `${trackColor}60`);
       gradient.addColorStop(1, `${trackColor}20`);
 
-      // Use performance.now() for consistent timing
-      const time = performance.now() / 1000;
+      // Draw frequency wave patterns
+      const time = audioContextRef.current.currentTime - startTimeRef.current;
       ctx.lineWidth = 2;
       ctx.strokeStyle = trackColor;
-
-      // Lower resolution for mobile/low-end devices
-      const stepSize = isLowEndDevice ? 8 : 1; // Draw fewer points on low-end devices
 
       // Draw waves based on playback mode
       if (useBinauralMode) {
         const [fL, fR] = tracks[trackKey].freqs;
 
-        // Left channel wave (use stepSize for optimization)
+        // Left channel wave
         ctx.beginPath();
-        for (let i = 0; i < width; i += stepSize) {
+        for (let i = 0; i < width; i++) {
           const x = i;
           const y =
             height / 2 +
@@ -531,36 +390,33 @@ const FrequencyPlayer = forwardRef((props, ref) => {
         }
         ctx.stroke();
 
-        // Only draw second wave on higher-end devices or simplify on low-end
-        if (!isLowEndDevice) {
-          // Right channel wave
-          ctx.beginPath();
-          ctx.strokeStyle = `${trackColor}90`;
-          for (let i = 0; i < width; i += stepSize) {
-            const x = i;
-            const y =
-              height / 2 +
-              Math.sin((time * fR) / 20 + i / 10) *
-                (height / 4) *
-                Math.sin((i / width) * Math.PI + 0.2);
+        // Right channel wave
+        ctx.beginPath();
+        ctx.strokeStyle = `${trackColor}90`;
+        for (let i = 0; i < width; i++) {
+          const x = i;
+          const y =
+            height / 2 +
+            Math.sin((time * fR) / 20 + i / 10) *
+              (height / 4) *
+              Math.sin((i / width) * Math.PI + 0.2);
 
-            if (i === 0) {
-              ctx.moveTo(x, y);
-            } else {
-              ctx.lineTo(x, y);
-            }
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
           }
-          ctx.stroke();
         }
+        ctx.stroke();
       } else {
         // Monaural wave (single wave with amplitude modulation)
         const baseFreq = tracks[trackKey].monoFreq;
         const beatFreq = tracks[trackKey].beatFreq;
 
         ctx.beginPath();
-        for (let i = 0; i < width; i += stepSize) {
+        for (let i = 0; i < width; i++) {
           const x = i;
-          // Base wave with faster movement
+          // Base wave
           const baseWave = Math.sin((time * baseFreq) / 20 + i / 10);
           // Amplitude modulation
           const modulation =
@@ -581,35 +437,33 @@ const FrequencyPlayer = forwardRef((props, ref) => {
         }
         ctx.stroke();
 
-        // Only draw second wave on higher-end devices
-        if (!isLowEndDevice) {
-          ctx.beginPath();
-          ctx.strokeStyle = `${trackColor}50`;
-          for (let i = 0; i < width; i += stepSize) {
-            const x = i;
-            const baseWave = Math.sin((time * baseFreq * 1.005) / 20 + i / 10);
-            const modulation =
-              beatFreq > 0 ? 0.5 + 0.5 * Math.sin(time * beatFreq) : 1;
+        // Second wave for visual interest
+        ctx.beginPath();
+        ctx.strokeStyle = `${trackColor}50`;
+        for (let i = 0; i < width; i++) {
+          const x = i;
+          const baseWave = Math.sin((time * baseFreq * 1.005) / 20 + i / 10);
+          const modulation =
+            beatFreq > 0 ? 0.5 + 0.5 * Math.sin(time * beatFreq) : 1;
 
-            const y =
-              height / 2 +
-              baseWave *
-                modulation *
-                (height / 4) *
-                Math.sin((i / width) * Math.PI + 0.1);
+          const y =
+            height / 2 +
+            baseWave *
+              modulation *
+              (height / 4) *
+              Math.sin((i / width) * Math.PI + 0.1);
 
-            if (i === 0) {
-              ctx.moveTo(x, y);
-            } else {
-              ctx.lineTo(x, y);
-            }
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
           }
-          ctx.stroke();
         }
+        ctx.stroke();
       }
 
-      // Reduce particle count on low-end devices
-      const particleCount = isLowEndDevice ? 10 : 20;
+      // Particles for extra effect
+      const particleCount = 20;
       ctx.fillStyle = trackColor;
 
       for (let i = 0; i < particleCount; i++) {
@@ -681,15 +535,6 @@ const FrequencyPlayer = forwardRef((props, ref) => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
-
-      if (
-        audioContextRef.current &&
-        audioContextRef.current.state !== "closed"
-      ) {
-        audioContextRef.current
-          .close()
-          .catch((e) => console.warn("Error closing audio context", e));
-      }
     };
   }, []);
 
@@ -715,7 +560,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
             {!isPlaying && (
               <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 backdrop-blur-sm">
                 <button
-                  onClick={togglePlayPause} // Use tracking function
+                  onClick={togglePlayPause}
                   className="bg-cyan-500 bg-opacity-20 hover:bg-opacity-30 rounded-full h-12 w-12 flex items-center justify-center transition-all duration-300"
                 >
                   <i className="fas fa-play ml-1 text-cyan-400"></i>
@@ -728,7 +573,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
           <div className="flex flex-col space-y-4">
             {/* Play button */}
             <button
-              onClick={togglePlayPause} // Use tracking function
+              onClick={togglePlayPause}
               className={`py-3 rounded-lg flex items-center justify-center shadow-lg transition-all duration-300 ${
                 isPlaying
                   ? "bg-gradient-to-r from-red-500/80 to-red-600/80 text-white"
@@ -740,7 +585,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
                   isPlaying ? "" : "ml-1"
                 } mr-2`}
               ></i>
-              {isPlaying ? "Stop" : "Play"} "{tracks[trackKey].label}"
+              {isPlaying ? "Stop" : "Play"} "{label}"
             </button>
 
             {/* Volume slider */}
@@ -752,7 +597,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
                 max="1"
                 step="0.01"
                 value={volume}
-                onChange={(e) => handleVolumeChange(Number(e.target.value))} // Use tracking function
+                onChange={(e) => handleVolumeChange(Number(e.target.value))}
                 className="w-full h-2 bg-gray-700 rounded-full appearance-none cursor-pointer"
                 style={{
                   background: `linear-gradient(to right, #00b8d4 ${
@@ -776,7 +621,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
             {Object.entries(tracks).map(([key, track]) => (
               <button
                 key={key}
-                onClick={() => handleFrequencySelection(key)} // Use tracking function
+                onClick={() => handleFrequencySelection(key)}
                 className={`py-2 px-3 rounded-lg text-left transition-all flex items-center ${
                   trackKey === key
                     ? "bg-opacity-20 border text-white"
@@ -831,6 +676,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
           </div>
         </div>
       </div>
+
       {/* Headphone recommendation - full width at bottom */}
       <div className="bg-cyan-900 bg-opacity-10 px-4 py-3 flex items-center justify-center text-gray-300 space-x-2 text-sm">
         <i
