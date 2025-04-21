@@ -5,7 +5,6 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import ReactGA from "react-ga4";
 
 const FrequencyPlayer = forwardRef((props, ref) => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -24,24 +23,12 @@ const FrequencyPlayer = forwardRef((props, ref) => {
   useImperativeHandle(ref, () => ({
     stopAudio: () => {
       if (isPlaying) {
-        // Track stopping from external component
-        ReactGA.event({
-          category: "Frequency Therapy",
-          action: "Stop",
-          label: "External Control",
-        });
         setIsPlaying(false);
       }
     },
     isPlaying: () => isPlaying,
     startAudio: () => {
       if (!isPlaying) {
-        // Track starting from external component
-        ReactGA.event({
-          category: "Frequency Therapy",
-          action: "Start",
-          label: "External Control",
-        });
         setIsPlaying(true);
       }
     },
@@ -97,69 +84,6 @@ const FrequencyPlayer = forwardRef((props, ref) => {
       help: "Promotes overall wellness",
       color: "#00b8d4",
     },
-  };
-
-  // Handle play/pause with tracking
-  const togglePlayPause = () => {
-    const newPlayState = !isPlaying;
-
-    // Track in Google Analytics
-    ReactGA.event({
-      category: "Frequency Therapy",
-      action: newPlayState ? "Play" : "Stop",
-      label: tracks[trackKey].label,
-    });
-
-    setIsPlaying(newPlayState);
-  };
-
-  // Handle frequency selection with tracking
-  const handleFrequencySelection = (key) => {
-    if (key === trackKey) return;
-
-    // Track in Google Analytics
-    ReactGA.event({
-      category: "Frequency Therapy",
-      action: "Frequency Selection",
-      label: tracks[key].label,
-    });
-
-    // Track changes during playback
-    if (isPlaying) {
-      ReactGA.event({
-        category: "Frequency Therapy",
-        action: "Change During Playback",
-        label: `From: ${tracks[trackKey].label} To: ${tracks[key].label}`,
-      });
-    }
-
-    setTrackKey(key);
-  };
-
-  // Handle volume changes with tracking
-  const handleVolumeChange = (newVolume) => {
-    // Track significant volume changes
-    if (Math.abs(volume - newVolume) > 0.1) {
-      ReactGA.event({
-        category: "Frequency Therapy",
-        action: "Volume Change",
-        label: `${Math.round(newVolume * 100)}%`,
-      });
-    }
-
-    setVolume(newVolume);
-  };
-
-  // Handle output mode changes with tracking
-  const handleOutputModeChange = (useBinaural) => {
-    // Track in Google Analytics
-    ReactGA.event({
-      category: "Frequency Therapy",
-      action: "Output Mode Change",
-      label: useBinaural ? "Binaural" : "Speakers",
-    });
-
-    setUseBinauralMode(useBinaural);
   };
 
   // Audio setup - with both binaural and monaural modes
@@ -560,7 +484,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
             {!isPlaying && (
               <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 backdrop-blur-sm">
                 <button
-                  onClick={togglePlayPause}
+                  onClick={() => setIsPlaying(true)}
                   className="bg-cyan-500 bg-opacity-20 hover:bg-opacity-30 rounded-full h-12 w-12 flex items-center justify-center transition-all duration-300"
                 >
                   <i className="fas fa-play ml-1 text-cyan-400"></i>
@@ -573,7 +497,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
           <div className="flex flex-col space-y-4">
             {/* Play button */}
             <button
-              onClick={togglePlayPause}
+              onClick={() => setIsPlaying((p) => !p)}
               className={`py-3 rounded-lg flex items-center justify-center shadow-lg transition-all duration-300 ${
                 isPlaying
                   ? "bg-gradient-to-r from-red-500/80 to-red-600/80 text-white"
@@ -597,7 +521,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
                 max="1"
                 step="0.01"
                 value={volume}
-                onChange={(e) => handleVolumeChange(Number(e.target.value))}
+                onChange={(e) => setVolume(Number(e.target.value))}
                 className="w-full h-2 bg-gray-700 rounded-full appearance-none cursor-pointer"
                 style={{
                   background: `linear-gradient(to right, #00b8d4 ${
@@ -606,6 +530,37 @@ const FrequencyPlayer = forwardRef((props, ref) => {
                 }}
               />
               <i className="fas fa-volume-up text-cyan-400 text-sm"></i>
+            </div>
+
+            {/* Playback mode toggle */}
+            <div className="flex items-center justify-between text-gray-300 bg-black/30 rounded-lg p-2.5">
+              <span className="text-sm">Output Mode:</span>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setUseBinauralMode(true)}
+                  className={`px-3 py-1.5 text-xs rounded-full ${
+                    useBinauralMode
+                      ? "bg-cyan-600 text-white"
+                      : "bg-gray-800 text-gray-300"
+                  }`}
+                  title="Best with headphones"
+                >
+                  <i className="fas fa-headphones mr-1.5"></i>
+                  Binaural
+                </button>
+                <button
+                  onClick={() => setUseBinauralMode(false)}
+                  className={`px-3 py-1.5 text-xs rounded-full ${
+                    !useBinauralMode
+                      ? "bg-cyan-600 text-white"
+                      : "bg-gray-800 text-gray-300"
+                  }`}
+                  title="Best with speakers"
+                >
+                  <i className="fas fa-volume-up mr-1.5"></i>
+                  Speakers
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -621,7 +576,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
             {Object.entries(tracks).map(([key, track]) => (
               <button
                 key={key}
-                onClick={() => handleFrequencySelection(key)}
+                onClick={() => setTrackKey(key)}
                 className={`py-2 px-3 rounded-lg text-left transition-all flex items-center ${
                   trackKey === key
                     ? "bg-opacity-20 border text-white"
