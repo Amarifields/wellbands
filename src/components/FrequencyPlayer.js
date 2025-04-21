@@ -110,6 +110,12 @@ const FrequencyPlayer = forwardRef((props, ref) => {
       action: newPlayState ? "Play" : "Stop",
       label: tracks[trackKey].label,
     });
+
+    // ADDED: Reset the start time reference when toggling play state
+    // This ensures the wave animation restarts correctly
+    if (newPlayState && audioContextRef.current) {
+      startTimeRef.current = audioContextRef.current.currentTime;
+    }
   };
 
   // Add tracking for frequency selection
@@ -362,8 +368,9 @@ const FrequencyPlayer = forwardRef((props, ref) => {
       gradient.addColorStop(0, `${trackColor}60`);
       gradient.addColorStop(1, `${trackColor}20`);
 
-      // Draw frequency wave patterns
-      const time = audioContextRef.current.currentTime - startTimeRef.current;
+      // CHANGED LINE: Use performance.now() instead of audioContext time for consistent animation
+      // This ensures the waves move properly regardless of audio context state
+      const time = performance.now() / 1000;
       ctx.lineWidth = 2;
       ctx.strokeStyle = trackColor;
 
