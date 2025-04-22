@@ -134,15 +134,41 @@ const SacredGeometry = () => {
   }, [isPlaying]);
 
   const toggleFullscreen = () => {
-    if (!isFullscreen) {
-      containerRef.current.requestFullscreen().catch((err) => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
-      });
+    const el = containerRef.current;
+    const fsEnabled =
+      document.fullscreenEnabled ||
+      document.webkitFullscreenEnabled ||
+      document.msFullscreenEnabled;
+
+    if (fsEnabled) {
+      // use the native fullscreen API if available
+      if (!isFullscreen) {
+        const req =
+          el.requestFullscreen ||
+          el.webkitRequestFullscreen ||
+          el.msRequestFullscreen;
+        req
+          .call(el)
+          .catch((err) => console.error("Fullscreen failed:", err.message));
+      } else {
+        const exit =
+          document.exitFullscreen ||
+          document.webkitExitFullscreen ||
+          document.msExitFullscreen;
+        exit.call(document);
+      }
     } else {
-      document.exitFullscreen();
+      // MOBILE FALLBACK: toggle our CSS class
+      if (!isFullscreen) {
+        el.classList.add("fake-fullscreen");
+        setIsFullscreen(true);
+      } else {
+        el.classList.remove("fake-fullscreen");
+        setIsFullscreen(false);
+      }
     }
 
-    // Track fullscreen in GA
+    // track the toggle in GA
     ReactGA.event({
       category: "Sacred Geometry",
       action: "Fullscreen Toggle",
@@ -356,6 +382,16 @@ const SacredGeometry = () => {
 
       {/* Add some CSS for animations */}
       <style jsx>{`
+        .fake-fullscreen {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          z-index: 9999 !important;
+          aspect-ratio: auto !important;
+          background: black;
+        }
         @keyframes fadeIn {
           from {
             opacity: 0;

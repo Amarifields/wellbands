@@ -531,37 +531,6 @@ const FrequencyPlayer = forwardRef((props, ref) => {
               />
               <i className="fas fa-volume-up text-cyan-400 text-sm"></i>
             </div>
-
-            {/* Playback mode toggle */}
-            <div className="flex items-center justify-between text-gray-300 bg-black/30 rounded-lg p-2.5">
-              <span className="text-sm">Output Mode:</span>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => setUseBinauralMode(true)}
-                  className={`px-3 py-1.5 text-xs rounded-full ${
-                    useBinauralMode
-                      ? "bg-cyan-600 text-white"
-                      : "bg-gray-800 text-gray-300"
-                  }`}
-                  title="Best with headphones"
-                >
-                  <i className="fas fa-headphones mr-1.5"></i>
-                  Binaural
-                </button>
-                <button
-                  onClick={() => setUseBinauralMode(false)}
-                  className={`px-3 py-1.5 text-xs rounded-full ${
-                    !useBinauralMode
-                      ? "bg-cyan-600 text-white"
-                      : "bg-gray-800 text-gray-300"
-                  }`}
-                  title="Best with speakers"
-                >
-                  <i className="fas fa-volume-up mr-1.5"></i>
-                  Speakers
-                </button>
-              </div>
-            </div>
           </div>
         </div>
 

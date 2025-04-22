@@ -9,6 +9,8 @@ import Dashboard from "./components/Dashboard";
 import Relax from "./components/RelaxPortal";
 import Guide from "./components/HarmonyGuide";
 import ScrollToTop from "./components/ScrollToTop";
+import LoginPage from "./components/LoginPage";
+import PurchaseSuccessPage from "./components/PurchaseSuccessPage";
 
 function App() {
   const location = useLocation();
@@ -55,6 +57,8 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/reset" element={<Relax />} />
         <Route path="/guide" element={<Guide />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/purchase-success" element={<PurchaseSuccessPage />} />
         <Route path="/home" element={<Navigate to="/" replace />} />
       </Routes>
     </>
