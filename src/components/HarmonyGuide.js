@@ -25,7 +25,6 @@ import {
   FaQuoteRight,
 } from "react-icons/fa";
 import "tailwindcss/tailwind.css";
-import Demo from "../assets/wellbands-reset-portal.mp4";
 
 const ResetPortal = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -251,7 +250,7 @@ const ResetPortal = () => {
                 poster="https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-1.2.1&auto=format&fit=crop&w=1280&q=80"
                 controls={isVideoPlaying}
               >
-                <source src={Demo} type="video/mp4" />
+                <source src="/videos/wellbands-portal.mp4" type="video/mp4" />
                 Your browser does not support the video tag.
               </video>
             </div>
