@@ -74,11 +74,6 @@ function LoginPage() {
     <div className="login-page">
       <Navbar />
       <div className="main-content">
-        <div className="glow-overlay">
-          <div className="glow-top-right" />
-          <div className="glow-bottom-left" />
-        </div>
-
         <div className="container">
           <div className="login-card">
             {showForgot ? (
@@ -242,8 +237,9 @@ function LoginPage() {
       </div>
       <Footer />
 
-      <style jsx="true">{`
-        /* CSS remains the same as in your previous version */
+      <style jsx global>{`
+        /* Dark page background on the root */
+
         .login-page {
           background-color: #0a0a0a;
           color: #ffffff;
@@ -272,57 +268,20 @@ function LoginPage() {
           background-size: 100% 100%, 30px 30px, 30px 30px;
         }
 
+        /* match About’s spacing under the Navbar */
         .main-content {
           flex: 1;
-          position: relative;
-          padding-top: 120px;
-          padding-bottom: 60px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          padding: 120px 0 80px;
         }
 
+        /* same container centering as About */
         .container {
-          max-width: 450px;
+          max-width: 450px; /* or bump to 1000px if you prefer */
           margin: 0 auto;
-          padding: 0 20px;
+          padding: 0 24px;
           width: 100%;
           position: relative;
           z-index: 1;
-        }
-
-        .glow-overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          z-index: 0;
-          overflow: hidden;
-        }
-
-        .glow-top-right {
-          position: absolute;
-          top: 40px;
-          right: 40px;
-          width: 500px;
-          height: 500px;
-          background: #00b8d4;
-          border-radius: 100%;
-          filter: blur(150px);
-          opacity: 0.15;
-        }
-
-        .glow-bottom-left {
-          position: absolute;
-          bottom: 40px;
-          left: 40px;
-          width: 500px;
-          height: 500px;
-          background: #00e5ff;
-          border-radius: 100%;
-          filter: blur(150px);
-          opacity: 0.15;
         }
 
         .login-card {
