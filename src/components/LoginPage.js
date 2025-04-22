@@ -268,15 +268,18 @@ function LoginPage() {
           background-size: 100% 100%, 30px 30px, 30px 30px;
         }
 
-        /* match About’s spacing under the Navbar */
+        /* match About/Contact spacing under the navbar */
         .main-content {
           flex: 1;
           padding: 120px 0 80px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
-        /* same container centering as About */
+        /* container centering */
         .container {
-          max-width: 450px; /* or bump to 1000px if you prefer */
+          max-width: 450px;
           margin: 0 auto;
           padding: 0 24px;
           width: 100%;
@@ -284,6 +287,7 @@ function LoginPage() {
           z-index: 1;
         }
 
+        /* glassmorphic card */
         .login-card {
           background: rgba(18, 18, 18, 0.6);
           border: 1px solid rgba(0, 217, 255, 0.15);
@@ -571,6 +575,52 @@ function LoginPage() {
 
         .purchase-link:hover {
           text-decoration: underline;
+        }
+
+        .glow-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 0;
+          overflow: hidden;
+        }
+
+        .glow-top-right {
+          position: absolute;
+          top: 40px;
+          right: 40px;
+          width: 500px;
+          height: 500px;
+          background: #00b8d4;
+          border-radius: 100%;
+          filter: blur(150px);
+          opacity: 0.15;
+        }
+
+        .glow-bottom-left {
+          position: absolute;
+          bottom: 40px;
+          left: 40px;
+          width: 500px;
+          height: 500px;
+          background: #00e5ff;
+          border-radius: 100%;
+          filter: blur(150px);
+          opacity: 0.15;
+        }
+
+        .glow-accent {
+          position: absolute;
+          top: 25%;
+          left: 30%;
+          width: 300px;
+          height: 300px;
+          background: #ff3d00;
+          border-radius: 100%;
+          filter: blur(120px);
+          opacity: 0.05;
         }
 
         /* Responsive styles */

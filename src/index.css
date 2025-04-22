@@ -1320,3 +1320,14 @@ video {
     transform: translateY(-100%);
   }
 }
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  /* ensure the entire viewport stays black even before React mounts */
+  background-color: #0a0a0a !important;
+  color: #ffffff;
+  min-height: 100%;
+}
