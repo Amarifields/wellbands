@@ -30,18 +30,15 @@ const RelaxPortal = () => {
     }
   };
 
+  // fetch user + portal data
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return navigate("/login");
-    setIsLoading(true);
     axios
       .get(`${API_URL}/api/reset`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then((res) => {
-        setUserEmail(res.data.email);
-        setIsLoggedIn(true);
-      })
+      .then((res) => setUserEmail(res.data.email))
       .catch(() => {
         localStorage.removeItem("token");
         navigate("/login");
@@ -49,28 +46,34 @@ const RelaxPortal = () => {
       .finally(() => setIsLoading(false));
   }, [navigate]);
 
-  // Close user menu when clicking outside
+  // close user menu on outside click
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+    const handleClick = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
         setShowUserMenu(false);
       }
     };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("currentPortalUser");
-    localStorage.removeItem("token"); // ← clear the Firebase ID token
+    localStorage.removeItem("token");
     navigate("/login");
   };
 
+  // **BRANDED FULL-SCREEN LOADER**
   if (isLoading) {
-    return <div className="text-center p-12">Loading...</div>;
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-gradient z-50">
+        <div className="text-center">
+          <div className="loader mb-6 mx-auto"></div>
+          <h2 className="text-2xl font-semibold text-white">
+            Preparing your Reset Portal…
+          </h2>
+        </div>
+      </div>
+    );
   }
 
   return (
