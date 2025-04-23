@@ -136,7 +136,7 @@ const SacredGeometry = () => {
   const toggleFullscreen = () => {
     const el = containerRef.current;
 
-    // 1) Check for native Fullscreen API
+    // 1️⃣ Try the native Fullscreen API first
     const requestFs =
       el.requestFullscreen ||
       el.webkitRequestFullscreen ||
@@ -147,28 +147,30 @@ const SacredGeometry = () => {
       document.msExitFullscreen;
 
     if (requestFs) {
-      // If nothing is full-screen, enter full-screen
+      // enter FS if not already in it
       if (!document.fullscreenElement) {
         requestFs
           .call(el)
           .catch((err) => console.warn("Fullscreen request failed:", err));
       }
-      // Otherwise exit full-screen
+      // exit FS
       else {
         exitFs.call(document);
       }
     } else {
-      // 2) FALLBACK: toggle a CSS class when API unsupported
+      // 2️⃣ FALLBACK for browsers without Fullscreen API
       if (!isFullscreen) {
         el.classList.add("fake-fullscreen");
+        document.body.style.overflow = "hidden";
+        setIsFullscreen(true);
       } else {
         el.classList.remove("fake-fullscreen");
+        document.body.style.overflow = "";
+        setIsFullscreen(false);
       }
-      // Manually flip state (your fullscreenchange listener won't fire)
-      setIsFullscreen(!isFullscreen);
     }
 
-    // 3) Track in Google Analytics
+    // 3️⃣ Track the toggle in GA
     ReactGA.event({
       category: "Sacred Geometry",
       action: "Fullscreen Toggle",
@@ -382,7 +384,7 @@ const SacredGeometry = () => {
 
       {/* Add some CSS for animations */}
       <style jsx global>{`
-        /* true full-screen on all browsers */
+        /* TRUE fullscreen via Fullscreen API */
         .geometry-container:fullscreen,
         .geometry-container:-webkit-full-screen,
         .geometry-container:-ms-fullscreen {
@@ -396,7 +398,7 @@ const SacredGeometry = () => {
           background: black;
         }
 
-        /* fallback when Fullscreen API unavailable */
+        /* FAKE fullscreen fallback */
         .fake-fullscreen {
           position: fixed !important;
           top: 0 !important;
@@ -406,6 +408,12 @@ const SacredGeometry = () => {
           aspect-ratio: auto !important;
           z-index: 9999 !important;
           background: black;
+        }
+
+        /* Ensure the canvas inside stretches */
+        .fake-fullscreen .geometry-canvas {
+          width: 100% !important;
+          height: 100% !important;
         }
         @keyframes fadeIn {
           from {
