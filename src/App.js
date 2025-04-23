@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import ReactGA from "react-ga4";
+
 import LoginPage from "./components/LoginPage";
 import Waitlist from "./components/newWaitlist";
 import About from "./components/About";
@@ -14,8 +15,6 @@ import ScrollToTop from "./components/ScrollToTop";
 
 function App() {
   const location = useLocation();
-  // grab JWT / session token
-  const token = localStorage.getItem("token");
 
   // initialize GA once
   useEffect(() => {
@@ -23,10 +22,13 @@ function App() {
     ReactGA.send({ hitType: "pageview", page: location.pathname });
   }, []);
 
-  // track subsequent pageviews on route change
+  // track subsequent pageviews
   useEffect(() => {
     ReactGA.send({ hitType: "pageview", page: location.pathname });
   }, [location]);
+
+  // helper for instant sync with localStorage
+  const isAuth = () => Boolean(localStorage.getItem("token"));
 
   return (
     <>
@@ -39,26 +41,26 @@ function App() {
         <Route path="/connect" element={<Connect />} />
         <Route path="/career" element={<Careers />} />
 
-        {/* Login route: redirect to portal if already authenticated */}
+        {/* if you’re already authenticated, skip straight to the portal */}
         <Route
           path="/login"
-          element={token ? <Navigate to="/reset" replace /> : <LoginPage />}
+          element={isAuth() ? <Navigate to="/reset" replace /> : <LoginPage />}
         />
 
         <Route path="/purchase-success" element={<PurchaseSuccessPage />} />
 
-        {/* Protected routes: require token or bounce to /login */}
+        {/* protected routes: bounce to login if no token */}
         <Route
           path="/dashboard"
-          element={token ? <Dashboard /> : <Navigate to="/login" replace />}
+          element={isAuth() ? <Dashboard /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/reset"
-          element={token ? <Relax /> : <Navigate to="/login" replace />}
+          element={isAuth() ? <Relax /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/guide"
-          element={token ? <Guide /> : <Navigate to="/login" replace />}
+          element={isAuth() ? <Guide /> : <Navigate to="/login" replace />}
         />
 
         <Route path="/home" element={<Navigate to="/" replace />} />
