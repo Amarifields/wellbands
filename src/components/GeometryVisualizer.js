@@ -135,44 +135,37 @@ const SacredGeometry = () => {
 
   const toggleFullscreen = () => {
     const el = containerRef.current;
-    const fsEnabled =
-      document.fullscreenEnabled ||
-      document.webkitFullscreenEnabled ||
-      document.msFullscreenEnabled;
 
-    if (fsEnabled) {
-      // use the native fullscreen API if available
-      if (!isFullscreen) {
-        const req =
-          el.requestFullscreen ||
-          el.webkitRequestFullscreen ||
-          el.msRequestFullscreen;
-        req
-          .call(el)
-          .catch((err) => console.error("Fullscreen failed:", err.message));
-      } else {
-        const exit =
-          document.exitFullscreen ||
-          document.webkitExitFullscreen ||
-          document.msExitFullscreen;
-        exit.call(document);
+    // If nothing is fullscreen, request fullscreen on our container
+    if (!document.fullscreenElement) {
+      if (el.requestFullscreen) {
+        el.requestFullscreen().catch((err) =>
+          console.warn("Fullscreen request failed:", err)
+        );
+      } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+      } else if (el.msRequestFullscreen) {
+        el.msRequestFullscreen();
       }
-    } else {
-      // MOBILE FALLBACK: toggle our CSS class
-      if (!isFullscreen) {
-        el.classList.add("fake-fullscreen");
-        setIsFullscreen(true);
-      } else {
-        el.classList.remove("fake-fullscreen");
-        setIsFullscreen(false);
+    }
+    // Otherwise exit fullscreen
+    else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
       }
     }
 
-    // track the toggle in GA
+    // Track the toggle in GA
     ReactGA.event({
       category: "Sacred Geometry",
       action: "Fullscreen Toggle",
-      label: !isFullscreen ? "Enter Fullscreen" : "Exit Fullscreen",
+      label: !document.fullscreenElement
+        ? "Enter Fullscreen"
+        : "Exit Fullscreen",
     });
   };
 
@@ -382,15 +375,16 @@ const SacredGeometry = () => {
 
       {/* Add some CSS for animations */}
       <style jsx>{`
-        .fake-fullscreen {
+        .geometry-container:fullscreen,
+        .geometry-container:-webkit-full-screen,
+        .geometry-container:-ms-fullscreen {
           position: fixed !important;
           top: 0 !important;
           left: 0 !important;
           width: 100vw !important;
           height: 100vh !important;
-          z-index: 9999 !important;
           aspect-ratio: auto !important;
-          background: black;
+          z-index: 9999 !important;
         }
         @keyframes fadeIn {
           from {
