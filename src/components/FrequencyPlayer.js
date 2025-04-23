@@ -93,19 +93,24 @@ const FrequencyPlayer = forwardRef((props, ref) => {
 
     if (isPlaying) {
       try {
-        // Create audio context
-        ctx = new (window.AudioContext || window.webkitAudioContext)();
-        audioContextRef.current = ctx;
-
+        let ctx = audioContextRef.current;
+        if (!ctx) {
+          ctx = new (window.AudioContext || window.webkitAudioContext)();
+          audioContextRef.current = ctx;
+        }
+        // on mobile Safari this resumes it after the user tap
         if (ctx.state === "suspended") {
           ctx.resume();
         }
 
-        // Master gain node
-        gain = ctx.createGain();
+        // get or create the shared GainNode
+        let gain = gainNodeRef.current;
+        if (!gain) {
+          gain = ctx.createGain();
+          gain.connect(ctx.destination);
+          gainNodeRef.current = gain;
+        }
         gain.gain.setValueAtTime(volume, ctx.currentTime);
-        gain.connect(ctx.destination);
-        gainNodeRef.current = gain;
 
         if (useBinauralMode) {
           // Binaural mode (separate left and right channels)
@@ -121,16 +126,19 @@ const FrequencyPlayer = forwardRef((props, ref) => {
           oscR.type = "sine";
           oscR.frequency.setValueAtTime(fR, ctx.currentTime);
 
-          // Create stereo panning
-          const panL = ctx.createStereoPanner();
-          panL.pan.value = -1;
+          if (typeof ctx.createStereoPanner === "function") {
+            const panL = ctx.createStereoPanner();
+            panL.pan.value = -1;
+            oscL.connect(panL).connect(gain);
 
-          const panR = ctx.createStereoPanner();
-          panR.pan.value = 1;
-
-          // Connect the nodes
-          oscL.connect(panL).connect(gain);
-          oscR.connect(panR).connect(gain);
+            const panR = ctx.createStereoPanner();
+            panR.pan.value = 1;
+            oscR.connect(panR).connect(gain);
+          } else {
+            // older browsers: just mix both oscillators down to the gain
+            oscL.connect(gain);
+            oscR.connect(gain);
+          }
 
           // Save references
           oscillatorsRef.current = {
@@ -227,14 +235,6 @@ const FrequencyPlayer = forwardRef((props, ref) => {
           }
         }
       });
-
-      if (ctx) {
-        try {
-          ctx.close();
-        } catch (e) {
-          console.warn("Error closing audio context:", e);
-        }
-      }
 
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
