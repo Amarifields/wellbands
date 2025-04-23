@@ -40,6 +40,7 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/connect" element={<Connect />} />
         <Route path="/career" element={<Careers />} />
+        <Route path="/guide" element={<Guide />} />
 
         {/* if you’re already authenticated, skip straight to the portal */}
         <Route
@@ -57,10 +58,6 @@ function App() {
         <Route
           path="/reset"
           element={isAuth() ? <Relax /> : <Navigate to="/login" replace />}
-        />
-        <Route
-          path="/guide"
-          element={isAuth() ? <Guide /> : <Navigate to="/login" replace />}
         />
 
         <Route path="/home" element={<Navigate to="/" replace />} />
