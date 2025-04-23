@@ -10,8 +10,8 @@ import harvard from "../assets/harvard.png";
 import stanford from "../assets/stanford.png";
 import cleveland from "../assets/cleveland.png";
 import Dashboard from "../assets/dashboard-ss.png";
-import Grace from "../assets/companion.mp4";
-import Demo from "../assets/wellbands-demo.mp4";
+import Grace from "../assets/companion2.mp4";
+import Demo from "../assets/wellbands-demo2.mp4";
 
 import {
   FaUsers,
