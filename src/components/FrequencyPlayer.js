@@ -11,6 +11,7 @@ const FrequencyPlayer = forwardRef((props, ref) => {
   const [trackKey, setTrackKey] = useState("deepSleep");
   const [volume, setVolume] = useState(0.5); // Increased default volume for better audibility
   const [useBinauralMode, setUseBinauralMode] = useState(true);
+  const isMobileSpeaker = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
   const canvasRef = useRef(null);
   const audioContextRef = useRef(null);
@@ -88,157 +89,150 @@ const FrequencyPlayer = forwardRef((props, ref) => {
 
   // Audio setup - with both binaural and monaural modes
   useEffect(() => {
-    let ctx, gain;
-    let audioNodes = [];
+    let resumeInterval = null;
+    const audioNodes = [];
+
+    // called whenever context is suspended or device changes
+    const tryResume = () => {
+      const ctx = audioContextRef.current;
+      if (ctx && ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+    };
+
+    // listen for headphone/speaker plug/unplug
+    const handleDeviceChange = () => tryResume();
 
     if (isPlaying) {
-      try {
-        let ctx = audioContextRef.current;
-        if (!ctx) {
-          ctx = new (window.AudioContext || window.webkitAudioContext)();
-          audioContextRef.current = ctx;
-        }
-        // on mobile Safari this resumes it after the user tap
-        if (ctx.state === "suspended") {
-          ctx.resume();
-        }
-
-        // get or create the shared GainNode
-        let gain = gainNodeRef.current;
-        if (!gain) {
-          gain = ctx.createGain();
-          gain.connect(ctx.destination);
-          gainNodeRef.current = gain;
-        }
-        gain.gain.setValueAtTime(volume, ctx.currentTime);
-
-        if (useBinauralMode) {
-          // Binaural mode (separate left and right channels)
-          const [fL, fR] = tracks[trackKey].freqs;
-
-          // Create and configure left oscillator
-          const oscL = ctx.createOscillator();
-          oscL.type = "sine";
-          oscL.frequency.setValueAtTime(fL, ctx.currentTime);
-
-          // Create and configure right oscillator
-          const oscR = ctx.createOscillator();
-          oscR.type = "sine";
-          oscR.frequency.setValueAtTime(fR, ctx.currentTime);
-
-          if (typeof ctx.createStereoPanner === "function") {
-            const panL = ctx.createStereoPanner();
-            panL.pan.value = -1;
-            oscL.connect(panL).connect(gain);
-
-            const panR = ctx.createStereoPanner();
-            panR.pan.value = 1;
-            oscR.connect(panR).connect(gain);
-          } else {
-            // older browsers: just mix both oscillators down to the gain
-            oscL.connect(gain);
-            oscR.connect(gain);
-          }
-
-          // Save references
-          oscillatorsRef.current = {
-            left: oscL,
-            right: oscR,
-            mono: null,
-          };
-
-          // Start oscillators
-          oscL.start();
-          oscR.start();
-
-          // Add to cleanup list
-          audioNodes.push(oscL, oscR);
-        } else {
-          // Monaural mode (single oscillator with amplitude modulation)
-          const track = tracks[trackKey];
-          const baseFreq = track.monoFreq;
-          const beatFreq = track.beatFreq;
-
-          // Carrier oscillator at base frequency
-          const carrier = ctx.createOscillator();
-          carrier.type = "sine";
-          carrier.frequency.setValueAtTime(baseFreq, ctx.currentTime);
-
-          if (beatFreq > 0) {
-            // Create amplitude modulation for the beat frequency
-            const modulationGain = ctx.createGain();
-            modulationGain.gain.setValueAtTime(1, ctx.currentTime);
-
-            // LFO to modulate amplitude at beat frequency
-            const lfo = ctx.createOscillator();
-            lfo.frequency.setValueAtTime(beatFreq, ctx.currentTime);
-            lfo.type = "sine";
-
-            // Map LFO output (±1) to gain range (0.3 to 1) to create the pulsing effect
-            const lfoGain = ctx.createGain();
-            lfoGain.gain.setValueAtTime(0.5, ctx.currentTime); // Modulation depth
-
-            const lfoOffset = ctx.createGain();
-            lfoOffset.gain.setValueAtTime(0.7, ctx.currentTime); // Center point
-
-            // Connect LFO to modulation
-            lfo.connect(lfoGain);
-            lfoGain.connect(modulationGain.gain);
-            lfoOffset.connect(modulationGain.gain);
-
-            // Connect carrier through modulation
-            carrier.connect(modulationGain);
-            modulationGain.connect(gain);
-
-            // Start oscillators
-            carrier.start();
-            lfo.start();
-
-            // Add to cleanup list
-            audioNodes.push(carrier, lfo);
-          } else {
-            // Single frequency tone (no beat)
-            carrier.connect(gain);
-            carrier.start();
-            audioNodes.push(carrier);
-          }
-
-          // Save references
-          oscillatorsRef.current = {
-            left: null,
-            right: null,
-            mono: carrier,
-          };
-        }
-
-        // Start visualizer
-        if (canvasRef.current) {
-          startVisualizer();
-        }
-
-        // Record start time for visualizer
-        startTimeRef.current = ctx.currentTime;
-      } catch (err) {
-        console.error("Audio setup error:", err);
-        setIsPlaying(false);
+      // 1) create / reuse AudioContext
+      let ctx = audioContextRef.current;
+      if (!ctx) {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        audioContextRef.current = ctx;
+        // auto-resume whenever it suspends
+        ctx.onstatechange = tryResume;
       }
+
+      // always resume on play
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+
+      // watch for device changes & poll
+      navigator.mediaDevices?.addEventListener(
+        "devicechange",
+        handleDeviceChange
+      );
+      resumeInterval = setInterval(tryResume, 1000);
+
+      // 2) create / reuse GainNode
+      let gain = gainNodeRef.current;
+      if (!gain) {
+        gain = ctx.createGain();
+        gain.connect(ctx.destination);
+        gainNodeRef.current = gain;
+      }
+      gain.gain.setValueAtTime(volume, ctx.currentTime);
+
+      // 3) stereo detection
+      const canPlayStereo =
+        ctx.destination.maxChannelCount > 1 &&
+        typeof ctx.createStereoPanner === "function";
+
+      if (useBinauralMode) {
+        const [fL, fR] = tracks[trackKey].freqs;
+
+        // left oscillator
+        const oscL = ctx.createOscillator();
+        oscL.type = "sine";
+        oscL.frequency.setValueAtTime(fL, ctx.currentTime);
+
+        // right oscillator
+        const oscR = ctx.createOscillator();
+        oscR.type = "sine";
+        oscR.frequency.setValueAtTime(fR, ctx.currentTime);
+
+        if (canPlayStereo) {
+          const panL = ctx.createStereoPanner();
+          panL.pan.value = -1;
+          oscL.connect(panL).connect(gain);
+
+          const panR = ctx.createStereoPanner();
+          panR.pan.value = 1;
+          oscR.connect(panR).connect(gain);
+        } else {
+          // mono fallback on single-speaker devices
+          oscL.connect(gain);
+          oscR.connect(gain);
+        }
+
+        oscL.start();
+        oscR.start();
+        oscillatorsRef.current = { left: oscL, right: oscR, mono: null };
+        audioNodes.push(oscL, oscR);
+      } else {
+        // Monaural mode (single oscillator + amplitude modulation)
+        const track = tracks[trackKey];
+        const baseFreq = track.monoFreq;
+        const beatFreq = track.beatFreq;
+
+        const carrier = ctx.createOscillator();
+        carrier.type = "sine";
+        carrier.frequency.setValueAtTime(baseFreq, ctx.currentTime);
+
+        if (beatFreq > 0) {
+          const modulationGain = ctx.createGain();
+          modulationGain.gain.setValueAtTime(1, ctx.currentTime);
+
+          const lfo = ctx.createOscillator();
+          lfo.frequency.setValueAtTime(beatFreq, ctx.currentTime);
+          lfo.type = "sine";
+
+          const lfoGain = ctx.createGain();
+          lfoGain.gain.setValueAtTime(0.5, ctx.currentTime);
+
+          const lfoOffset = ctx.createGain();
+          lfoOffset.gain.setValueAtTime(0.7, ctx.currentTime);
+
+          lfo.connect(lfoGain);
+          lfoGain.connect(modulationGain.gain);
+          lfoOffset.connect(modulationGain.gain);
+
+          carrier.connect(modulationGain);
+          modulationGain.connect(gain);
+
+          carrier.start();
+          lfo.start();
+          audioNodes.push(carrier, lfo);
+        } else {
+          carrier.connect(gain);
+          carrier.start();
+          audioNodes.push(carrier);
+        }
+
+        oscillatorsRef.current = { left: null, right: null, mono: carrier };
+      }
+
+      // Start visualizer
+      if (canvasRef.current) startVisualizer();
+      startTimeRef.current = ctx.currentTime;
     }
 
-    // Cleanup function
     return () => {
+      // stop all oscillators
       audioNodes.forEach((node) => {
-        if (node) {
-          try {
-            node.stop();
-          } catch (e) {
-            console.warn("Error stopping audio node:", e);
-          }
-        }
+        try {
+          node.stop();
+        } catch {}
       });
-
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      // stop animation
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      // remove listeners / intervals
+      navigator.mediaDevices?.removeEventListener(
+        "devicechange",
+        handleDeviceChange
+      );
+      clearInterval(resumeInterval);
     };
   }, [isPlaying, trackKey, volume, useBinauralMode]);
 

@@ -153,6 +153,7 @@ const RelaxPortal = () => {
 
       {/* Inline Global Styles */}
       <style>{`
+    
        .geometry-container:fullscreen,
   .geometry-container:-webkit-full-screen,
   .geometry-container:-ms-fullscreen {
