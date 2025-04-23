@@ -64,14 +64,10 @@ const ResetPortal = () => {
   const formattedTime = formatTime(countdown);
 
   const toggleVideo = () => {
-    if (videoRef.current) {
-      if (isVideoPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-      setIsVideoPlaying(!isVideoPlaying);
-    }
+    if (!videoRef.current) return;
+    if (isVideoPlaying) videoRef.current.pause();
+    else videoRef.current.play();
+    setIsVideoPlaying((v) => !v);
   };
 
   const scrollTestimonials = (direction) => {
@@ -235,7 +231,7 @@ const ResetPortal = () => {
               {!isVideoPlaying && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 z-10 transition-opacity hover:bg-opacity-40">
                   <div className="w-20 h-20 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform pulse-slow">
-                    <FaPlay className="text-white text-3xl ml-2" />
+                    <FaPlay className="text-white text-3xl" />
                   </div>
                   <span className="mt-4 text-white text-lg font-medium">
                     See The Portal In Action
@@ -250,7 +246,10 @@ const ResetPortal = () => {
                 poster="https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-1.2.1&auto=format&fit=crop&w=1280&q=80"
                 controls={isVideoPlaying}
               >
-                <source src="/videos/wellbands-portal.mp4" type="video/mp4" />
+                <source
+                  src="https://res.cloudinary.com/dizuqswvl/video/upload/v1745372779/Wellbands_Reset_Portal_Tutorial_smasal.mp4"
+                  type="video/mp4"
+                />
                 Your browser does not support the video tag.
               </video>
             </div>
