@@ -384,37 +384,6 @@ const SacredGeometry = () => {
 
       {/* Add some CSS for animations */}
       <style jsx global>{`
-        /* TRUE fullscreen via Fullscreen API */
-        .geometry-container:fullscreen,
-        .geometry-container:-webkit-full-screen,
-        .geometry-container:-ms-fullscreen {
-          position: fixed !important;
-          top: 0 !important;
-          left: 0 !important;
-          width: 100vw !important;
-          height: 100vh !important;
-          aspect-ratio: auto !important;
-          z-index: 9999 !important;
-          background: black;
-        }
-
-        /* FAKE fullscreen fallback */
-        .fake-fullscreen {
-          position: fixed !important;
-          top: 0 !important;
-          left: 0 !important;
-          width: 100vw !important;
-          height: 100vh !important;
-          aspect-ratio: auto !important;
-          z-index: 9999 !important;
-          background: black;
-        }
-
-        /* Ensure the canvas inside stretches */
-        .fake-fullscreen .geometry-canvas {
-          width: 100% !important;
-          height: 100% !important;
-        }
         @keyframes fadeIn {
           from {
             opacity: 0;

@@ -153,6 +153,36 @@ const RelaxPortal = () => {
 
       {/* Inline Global Styles */}
       <style>{`
+       .geometry-container:fullscreen,
+  .geometry-container:-webkit-full-screen,
+  .geometry-container:-ms-fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    aspect-ratio: auto !important;
+    z-index: 9999 !important;
+    background: black;
+  }
+
+  /* ——— Fake Fullscreen Fallback ——— */
+  .fake-fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    aspect-ratio: auto !important;
+    z-index: 9999 !important;
+    background: black;
+  }
+
+  /* make sure the canvas inside stretches too */
+  .fake-fullscreen .geometry-canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
         :root {
           --primary: #00b8d4;
           --primary-light: #00e5ff;
