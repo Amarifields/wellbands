@@ -537,6 +537,19 @@ const RelaxPortal = () => {
           margin-right: 10px;
           font-size: 16px;
         }
+
+         /* ——— LOADER ——— */
+        .loader {
+          width: 60px;
+          height: 60px;
+          border: 6px solid rgba(255, 255, 255, 0.2);
+          border-top-color: #00e5ff;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
         
         @media (max-width: 767px) {
           .section-title {
