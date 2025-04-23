@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "./Navbar/Navbar";
 import Footer from "./Footer/Footer";
+import { AuthContext } from "../AuthProvider";
 import { FaArrowLeft, FaEnvelope, FaLock, FaArrowRight } from "react-icons/fa";
 
 // point this at your deployed backend
@@ -22,20 +23,25 @@ function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
+  const { login } = useContext(AuthContext);
 
   // 2️⃣ Handle login via backend
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+
     try {
       const resp = await axios.post(`${API_URL}/api/auth/login`, {
         email,
         password,
         rememberMe,
       });
-      // backend returns { token, user: { email, uid } }
-      localStorage.setItem("token", resp.data.token);
+
+      // tell our AuthProvider about the new token
+      login(resp.data.token);
+
+      // now navigate into the portal
       navigate("/reset", { replace: true });
     } catch (err) {
       console.error(err);

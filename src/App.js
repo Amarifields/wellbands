@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useContext } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import ReactGA from "react-ga4";
 
@@ -12,9 +12,11 @@ import Relax from "./components/RelaxPortal";
 import Guide from "./components/HarmonyGuide";
 import PurchaseSuccessPage from "./components/PurchaseSuccessPage";
 import ScrollToTop from "./components/ScrollToTop";
+import { AuthContext } from "./AuthProvider";
 
 function App() {
   const location = useLocation();
+  const { token } = useContext(AuthContext);
 
   // initialize GA once
   useEffect(() => {
@@ -28,7 +30,7 @@ function App() {
   }, [location]);
 
   // helper for instant sync with localStorage
-  const isAuth = () => Boolean(localStorage.getItem("token"));
+  const isAuth = () => Boolean(token);
 
   return (
     <>

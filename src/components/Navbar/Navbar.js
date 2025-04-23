@@ -353,6 +353,57 @@ const Navbar = ({ whiteBg = false }) => {
           .mobile-menu-link {
             font-size: 20px;
           }
+             .profile-container {
+          position: relative;
+        }
+
+        .profile-dropdown {
+          position: absolute;
+          top: 100%;
+          right: 0;
+          background: rgba(10, 10, 10, 0.95);
+          border: 1px solid rgba(0, 184, 212, 0.2);
+          border-radius: 8px;
+          padding: 8px 0;
+          z-index: 1000;
+          min-width: 160px;
+        }
+        .profile-dropdown .user-email {
+          padding: 8px 12px;
+          color: #ffffff;
+          font-size: 14px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          white-space: nowrap;
+        }
+        .profile-logout {
+          width: 100%;
+          background: none;
+          border: none;
+          padding: 8px 12px;
+          color: rgba(255, 255, 255, 0.8);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          font-size: 14px;
+        }
+        .profile-logout:hover {
+          background-color: rgba(0, 184, 212, 0.1);
+          color: #00e5ff;
+        }
+
+        /* hide on tablet/mobile */
+        @media (max-width: 1023px) {
+          .profile-container {
+            display: none;
+          }
+        }
+
+        /* push to far right on desktop */
+        @media (min-width: 1024px) {
+          .profile-container {
+            margin-left: auto;
+          }
         }
       `}</style>
     </>

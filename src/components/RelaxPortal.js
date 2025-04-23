@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "./Navbar/Navbar";
@@ -8,6 +8,7 @@ import GeometryVisualizer from "./GeometryVisualizer";
 import BreathworkGuide from "./BreathworkGuide";
 import SessionTimer from "./SessionTimer";
 import { FaUserCircle, FaSignOutAlt } from "react-icons/fa";
+import { AuthContext } from "../AuthProvider";
 
 const RelaxPortal = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -17,6 +18,7 @@ const RelaxPortal = () => {
   const navigate = useNavigate();
   const userMenuRef = useRef(null);
   const frequencyPlayerRef = useRef(null);
+  const { token, logout } = useContext(AuthContext);
 
   // point this at your deployed backend
   const API_URL =
@@ -32,19 +34,23 @@ const RelaxPortal = () => {
 
   // fetch user + portal data
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return navigate("/login");
+    // if we lost our token, bail out and send back to login
+    if (!token) {
+      logout();
+      return;
+    }
+
     axios
       .get(`${API_URL}/api/reset`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setUserEmail(res.data.email))
       .catch(() => {
-        localStorage.removeItem("token");
-        navigate("/login");
+        // any failure means we should kick them back to login
+        logout();
       })
       .finally(() => setIsLoading(false));
-  }, [navigate]);
+  }, [API_URL, token, logout]);
 
   // close user menu on outside click
   useEffect(() => {
@@ -57,9 +63,9 @@ const RelaxPortal = () => {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  // logout via the AuthProvider
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
+    logout();
   };
 
   // **BRANDED FULL-SCREEN LOADER**
@@ -439,6 +445,7 @@ const RelaxPortal = () => {
             top: 0;
             right: 180px; /* Position next to Join Waitlist button */
             height: 80px;
+            padding-right: 1rem;
           }
         }
         
@@ -587,6 +594,7 @@ const RelaxPortal = () => {
             font-size: 36px; /* Slightly smaller on very small screens */
           }
         }
+          
       `}</style>
     </div>
   );

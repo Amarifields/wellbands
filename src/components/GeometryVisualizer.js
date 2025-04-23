@@ -296,8 +296,8 @@ const SacredGeometry = () => {
           </button>
 
           <button
-            onClick={toggleFullscreen} // Use the tracking function
-            className="bg-black/50 hover:bg-black/70 rounded-full w-10 h-10 flex items-center justify-center text-white backdrop-blur-sm"
+            onClick={toggleFullscreen}
+            className="hidden lg:flex bg-black/50 hover:bg-black/70 rounded-full w-10 h-10 items-center justify-center text-white backdrop-blur-sm"
             title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
           >
             <i className={`fas fa-${isFullscreen ? "compress" : "expand"}`}></i>
