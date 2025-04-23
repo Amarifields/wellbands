@@ -31,8 +31,21 @@ const ResetPortal = () => {
   const [countdown, setCountdown] = useState(172800); // 48 hours (2 days) in seconds
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [testimonialPage, setTestimonialPage] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(3);
   const videoRef = useRef(null);
   const testimonialScrollRef = useRef(null);
+
+  useEffect(() => {
+    const updateItems = () => {
+      const w = window.innerWidth;
+      if (w < 768) setItemsPerPage(1);
+      else if (w < 1024) setItemsPerPage(2);
+      else setItemsPerPage(3);
+    };
+    updateItems();
+    window.addEventListener("resize", updateItems);
+    return () => window.removeEventListener("resize", updateItems);
+  }, []);
 
   useEffect(() => {
     // Fade in animation on page load
@@ -302,14 +315,17 @@ const ResetPortal = () => {
                 }}
               >
                 {Array.from({
-                  length: Math.ceil(testimonials.length / 3),
+                  length: Math.ceil(testimonials.length / itemsPerPage),
                 }).map((_, pageIndex) => (
                   <div
                     key={pageIndex}
-                    className="flex-shrink-0 w-full grid grid-cols-1 md:grid-cols-3 gap-6 snap-start"
+                    className="flex-shrink-0 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 snap-start"
                   >
                     {testimonials
-                      .slice(pageIndex * 3, (pageIndex + 1) * 3)
+                      .slice(
+                        pageIndex * itemsPerPage,
+                        (pageIndex + 1) * itemsPerPage
+                      )
                       .map((testimonial, index) => (
                         <div
                           key={index}
@@ -361,7 +377,7 @@ const ResetPortal = () => {
             </div>
 
             {/* Navigation arrows - positioned outside the content */}
-            {testimonials.length > 3 && (
+            {testimonials.length > itemsPerPage && (
               <>
                 <button
                   onClick={() => scrollTestimonials("prev")}
@@ -377,12 +393,14 @@ const ResetPortal = () => {
                 <button
                   onClick={() => scrollTestimonials("next")}
                   className={`absolute right-0 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black/90 rounded-full p-3 text-white z-10 shadow-lg ${
-                    testimonialPage === Math.ceil(testimonials.length / 3) - 1
+                    testimonialPage ===
+                    Math.ceil(testimonials.length / itemsPerPage) - 1
                       ? "opacity-50 cursor-not-allowed"
                       : "opacity-100"
                   }`}
                   disabled={
-                    testimonialPage === Math.ceil(testimonials.length / 3) - 1
+                    testimonialPage ===
+                    Math.ceil(testimonials.length / itemsPerPage) - 1
                   }
                 >
                   <FaChevronRight />
@@ -393,28 +411,28 @@ const ResetPortal = () => {
 
           {/* Pagination dots */}
           <div className="flex justify-center mt-6 gap-2">
-            {Array.from({ length: Math.ceil(testimonials.length / 3) }).map(
-              (_, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    setTestimonialPage(index);
-                    if (testimonialScrollRef.current) {
-                      testimonialScrollRef.current.scrollTo({
-                        left: testimonialScrollRef.current.clientWidth * index,
-                        behavior: "smooth",
-                      });
-                    }
-                  }}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    testimonialPage === index
-                      ? "bg-cyan-400 w-6"
-                      : "bg-gray-600 hover:bg-gray-500"
-                  }`}
-                  aria-label={`View testimonial page ${index + 1}`}
-                />
-              )
-            )}
+            {Array.from({
+              length: Math.ceil(testimonials.length / itemsPerPage),
+            }).map((_, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setTestimonialPage(index);
+                  if (testimonialScrollRef.current) {
+                    testimonialScrollRef.current.scrollTo({
+                      left: testimonialScrollRef.current.clientWidth * index,
+                      behavior: "smooth",
+                    });
+                  }
+                }}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  testimonialPage === index
+                    ? "bg-cyan-400 w-6"
+                    : "bg-gray-600 hover:bg-gray-500"
+                }`}
+                aria-label={`View testimonial page ${index + 1}`}
+              />
+            ))}
           </div>
         </div>
       </section>

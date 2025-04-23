@@ -131,30 +131,30 @@ const BreathworkGuide = () => {
 
   // Play audio tone for phase transitions
   const playTone = (frequency, duration = 0.2, volume = 0.2) => {
-    if (!audioRef.current) return;
+    const ctx = audioRef.current;
+    if (!ctx) return;
+
+    // 🔑 unlock WebAudio on mobile (must be inside a user gesture)
+    if (ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
 
     try {
-      const oscillator = audioRef.current.createOscillator();
-      const gainNode = audioRef.current.createGain();
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
 
       oscillator.type = "sine";
       oscillator.frequency.value = frequency;
 
       gainNode.gain.value = 0;
-      gainNode.gain.linearRampToValueAtTime(
-        volume,
-        audioRef.current.currentTime + 0.05
-      );
-      gainNode.gain.linearRampToValueAtTime(
-        0,
-        audioRef.current.currentTime + duration
-      );
+      gainNode.gain.linearRampToValueAtTime(volume, ctx.currentTime + 0.05);
+      gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
 
       oscillator.connect(gainNode);
-      gainNode.connect(audioRef.current.destination);
+      gainNode.connect(ctx.destination);
 
       oscillator.start();
-      oscillator.stop(audioRef.current.currentTime + duration);
+      oscillator.stop(ctx.currentTime + duration);
     } catch (e) {
       console.warn("Error playing tone:", e);
     }
@@ -162,10 +162,10 @@ const BreathworkGuide = () => {
 
   // Generate tones for different phases
   const toneMap = {
-    inhale: () => playTone(196, 0.3, 0.15), // G3
-    hold1: () => playTone(220, 0.2, 0.1), // A3
-    exhale: () => playTone(165, 0.3, 0.15), // E3
-    hold2: () => playTone(147, 0.2, 0.1), // D3
+    inhale: () => playTone(196, 0.3, 0.3), // G3
+    hold1: () => playTone(220, 0.3, 0.3), // A3
+    exhale: () => playTone(165, 0.3, 0.3), // E3
+    hold2: () => playTone(147, 0.3, 0.3), // D3
   };
 
   // Core function to move through breath phases
@@ -262,18 +262,22 @@ const BreathworkGuide = () => {
   const start = () => {
     if (active) return;
 
+    // 🔑 unlock WebAudio on first tap
+    const ctx = audioRef.current;
+    if (ctx && ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
+
     // Reset and prepare the circle animation
     if (circleRef.current) {
       circleRef.current.style.animation = "none";
       circleRef.current.offsetHeight; // Trigger reflow
 
-      // Apply animation based on pattern timings
       const currentPattern = breathingPatterns[pattern];
       const totalTime = Object.values(currentPattern.steps).reduce(
         (a, b) => a + b,
         0
       );
-
       if (totalTime > 0) {
         circleRef.current.style.animation = `breatheAnimation ${totalTime}s infinite`;
       }
@@ -287,23 +291,15 @@ const BreathworkGuide = () => {
     setCycleCount(0);
     cycleCountRef.current = 0;
 
-    // Play start tone
-    playTone(330, 0.3, 0.2); // E4
-
-    // Play tone for first inhale
+    // Play start tone (and first inhale tone)
+    playTone(330, 0.3, 0.3); // E4
     toneMap["inhale"]?.();
 
-    // Clear any existing timers
+    // Schedule the next phase
     clearTimeout(timerRef.current);
-
-    // Set duration for first phase (inhale)
     const firstPhaseDuration = breathingPatterns[pattern].steps.inhale * 1000;
-
-    // Schedule transition to next phase
     timerRef.current = setTimeout(() => {
-      if (activeRef.current) {
-        moveToNextPhase();
-      }
+      if (activeRef.current) moveToNextPhase();
     }, firstPhaseDuration);
 
     // Track session start

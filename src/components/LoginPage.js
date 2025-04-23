@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "./Navbar/Navbar";
@@ -15,6 +15,9 @@ const API_URL =
 function LoginPage() {
   const navigate = useNavigate();
 
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
@@ -24,6 +27,20 @@ function LoginPage() {
   const [showForgot, setShowForgot] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const { login } = useContext(AuthContext);
+
+  useEffect(() => {
+    const syncAutofill = () => {
+      if (emailRef.current?.value) {
+        setEmail(emailRef.current.value);
+      }
+      if (passwordRef.current?.value) {
+        setPassword(passwordRef.current.value);
+      }
+    };
+    // give browser a moment to fill
+    const id = setTimeout(syncAutofill, 200);
+    return () => clearTimeout(id);
+  }, []);
 
   // 2️⃣ Handle login via backend
   const handleSubmit = async (e) => {
@@ -163,6 +180,8 @@ function LoginPage() {
                       <FaEnvelope className="input-icon" />
                       <input
                         id="email"
+                        ref={emailRef}
+                        autoComplete="email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -194,9 +213,11 @@ function LoginPage() {
                       <FaLock className="input-icon" />
                       <input
                         id="password"
+                        ref={passwordRef}
+                        autoComplete="current-password"
                         type="password"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => setPassword(e.target.value)} // ← add this
                         className="form-input with-icon"
                         placeholder="Enter your password"
                         required

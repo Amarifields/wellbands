@@ -84,29 +84,29 @@ const RelaxPortal = () => {
 
   return (
     <div className="bg-gradient min-h-screen relative">
-      <Navbar />
+      <Navbar>
+        {/* User Profile Button - Positioned for better responsiveness */}
+        <div className="user-profile-wrapper" ref={userMenuRef}>
+          <button
+            className="user-profile-button"
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            aria-label="User menu"
+          >
+            <FaUserCircle className="user-icon" />
+          </button>
 
-      {/* User Profile Button - Positioned for better responsiveness */}
-      <div className="user-profile-wrapper" ref={userMenuRef}>
-        <button
-          className="user-profile-button"
-          onClick={() => setShowUserMenu(!showUserMenu)}
-          aria-label="User menu"
-        >
-          <FaUserCircle className="user-icon" />
-        </button>
-
-        {showUserMenu && (
-          <div className="user-dropdown">
-            <div className="user-email">{userEmail}</div>
-            <div className="menu-divider"></div>
-            <button className="logout-button" onClick={handleLogout}>
-              <FaSignOutAlt className="logout-icon" />
-              Log Out
-            </button>
-          </div>
-        )}
-      </div>
+          {showUserMenu && (
+            <div className="user-dropdown">
+              <div className="user-email">{userEmail}</div>
+              <div className="menu-divider"></div>
+              <button className="logout-button" onClick={handleLogout}>
+                <FaSignOutAlt className="logout-icon" />
+                Log Out
+              </button>
+            </div>
+          )}
+        </div>
+      </Navbar>
 
       {/* Full-screen Canvas for Background Particles */}
       <canvas
@@ -430,40 +430,40 @@ const RelaxPortal = () => {
           -webkit-text-fill-color: transparent;
         }
         
-        /* User Profile Styles - Improved for better responsiveness */
+   /* 1) Hide the wrapper by default on desktop */
         .user-profile-wrapper {
-          position: fixed;
-          z-index: 1001; 
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          display: none;
         }
-        
-        /* Desktop positioning */
+
+        /* 2) On desktop slot it into the <ul> instead */
+        .navbar-profile-desktop {
+          display: none;
+        }
         @media (min-width: 1024px) {
-          .user-profile-wrapper {
-            top: 0;
-            right: 180px; /* Position next to Join Waitlist button */
-            height: 80px;
-            padding-right: 1rem;
+          .navbar-profile-desktop {
+            display: flex;
+            align-items: center;
           }
         }
-        
-        /* Tablet positioning */
-        @media (min-width: 768px) and (max-width: 1023px) {
+
+        /* 3) On tablet / mobile show the floating icon */
+        @media (max-width: 1023px) {
           .user-profile-wrapper {
-            top: 16px;
-            right: 80px; /* Position next to mobile menu toggle */
+            display: flex;
+            position: absolute;
+            top: 50%;
+            right: 16px;          /* match your navbar padding */
+            transform: translateY(-50%);
+            z-index: 1001;
           }
         }
-        
-        /* Mobile positioning */
         @media (max-width: 767px) {
           .user-profile-wrapper {
-            top: 15px;
-            right: 70px; /* Position next to mobile menu toggle */
+            right: 12px;          /* match your smaller padding */
           }
         }
+
+
         
         .user-profile-button {
           background: none;

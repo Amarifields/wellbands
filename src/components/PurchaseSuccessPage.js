@@ -1,5 +1,5 @@
 // src/components/PurchaseSuccessPage.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import Navbar from "./Navbar/Navbar";
@@ -11,6 +11,7 @@ import {
   FaArrowRight,
   FaLock,
 } from "react-icons/fa";
+import { AuthContext } from "../AuthProvider";
 
 // point this at your deployed backend
 const API_URL =
@@ -30,6 +31,7 @@ export default function PurchaseSuccessPage() {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useContext(AuthContext);
 
   // 1️⃣ Verify purchase
   useEffect(() => {
@@ -65,21 +67,20 @@ export default function PurchaseSuccessPage() {
     setIsLoading(true);
 
     try {
-      // 1️⃣ Call your register endpoint with email & password only
+      // 1️⃣ Call your register endpoint
       const resp = await axios.post(`${API_URL}/api/auth/register`, {
         email,
         password,
       });
 
-      // 2️⃣ Store the returned Firebase ID token
-      localStorage.setItem("token", resp.data.token);
+      // 2️⃣ Tell your AuthProvider about the new token
+      login(resp.data.token);
 
-      // 3️⃣ Show success and redirect into your reset flow
+      // 3️⃣ Show success & redirect into your /reset flow
       setSuccess(true);
       setTimeout(() => navigate("/reset", { replace: true }), 3000);
     } catch (err) {
       console.error("Registration error:", err);
-
       if (err.response?.status === 409) {
         setError("An account with this email already exists. Please log in.");
       } else {

@@ -3,31 +3,23 @@ import { Link, useLocation } from "react-router-dom";
 import { FaBars, FaTimes } from "react-icons/fa";
 import logo from "../../assets/logo.png";
 
-const Navbar = ({ whiteBg = false }) => {
+const Navbar = ({ whiteBg = false, children }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
 
-  // Handle scroll detection for background change
+  // handle scroll → background
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Lock body scroll when menu is open
+  // lock body when mobile menu open
   useEffect(() => {
-    if (menuOpen) {
-      document.body.classList.add("menu-open");
-    } else {
-      document.body.classList.remove("menu-open");
-    }
-    return () => document.body.classList.remove("menu-open");
+    document.body.classList.toggle("menu-open", menuOpen);
   }, [menuOpen]);
 
-  // Navigation routes
   const navItems = [
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
@@ -36,8 +28,6 @@ const Navbar = ({ whiteBg = false }) => {
     { name: "Connect", path: "/connect" },
     { name: "Careers", path: "/career" },
   ];
-
-  const closeMenu = () => setMenuOpen(false);
 
   return (
     <>
@@ -48,11 +38,15 @@ const Navbar = ({ whiteBg = false }) => {
       >
         <div className="navbar-container">
           {/* Logo */}
-          <Link to="/" className="navbar-logo" onClick={closeMenu}>
+          <Link
+            to="/"
+            className="navbar-logo"
+            onClick={() => setMenuOpen(false)}
+          >
             <img src={logo} alt="Wellbands" />
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop nav */}
           <nav className="navbar-nav">
             <ul className="navbar-nav-list">
               {navItems.map((item) => (
@@ -67,18 +61,30 @@ const Navbar = ({ whiteBg = false }) => {
                   </Link>
                 </li>
               ))}
+
+              {/* Join Waitlist CTA */}
               <li className="navbar-nav-item navbar-cta">
                 <Link to="/waitlist" className="navbar-button">
                   Join Waitlist
                 </Link>
               </li>
+
+              {/* Desktop-only profile slot */}
+              {children && (
+                <li className="navbar-nav-item navbar-profile-desktop">
+                  {children}
+                </li>
+              )}
             </ul>
           </nav>
 
-          {/* Mobile Menu Button */}
+          {/* Tablet/Mobile: absolute float */}
+          {children}
+
+          {/* Mobile toggle */}
           <button
             className="navbar-menu-toggle"
-            onClick={() => setMenuOpen(!menuOpen)}
+            onClick={() => setMenuOpen((o) => !o)}
             aria-label="Toggle navigation menu"
           >
             {menuOpen ? <FaTimes size={28} /> : <FaBars size={28} />}
@@ -86,7 +92,7 @@ const Navbar = ({ whiteBg = false }) => {
         </div>
       </header>
 
-      {/* Mobile Menu (separate from header) */}
+      {/* Mobile full-screen menu */}
       <div className={`mobile-menu ${menuOpen ? "open" : ""}`}>
         <div className="mobile-menu-container">
           <ul className="mobile-menu-list">
@@ -97,7 +103,7 @@ const Navbar = ({ whiteBg = false }) => {
                   className={`mobile-menu-link ${
                     location.pathname === item.path ? "active" : ""
                   }`}
-                  onClick={closeMenu}
+                  onClick={() => setMenuOpen(false)}
                 >
                   {item.name}
                 </Link>
@@ -107,7 +113,7 @@ const Navbar = ({ whiteBg = false }) => {
               <Link
                 to="/waitlist"
                 className="mobile-menu-button"
-                onClick={closeMenu}
+                onClick={() => setMenuOpen(false)}
               >
                 Join Waitlist
               </Link>
@@ -116,8 +122,8 @@ const Navbar = ({ whiteBg = false }) => {
         </div>
       </div>
 
+      {/* All of your navbar‐specific CSS lives here now */}
       <style jsx global>{`
-        /* Global style for body when menu is open */
         body.menu-open {
           overflow: hidden;
           position: fixed;
@@ -127,283 +133,197 @@ const Navbar = ({ whiteBg = false }) => {
       `}</style>
 
       <style jsx>{`
-        /* NAVBAR STYLES */
+        /* ---------- base navbar ---------- */
         .navbar {
           position: fixed;
           top: 0;
           left: 0;
           right: 0;
-          width: 100%;
           height: 80px;
-          background-color: transparent;
+          background: transparent;
           transition: background-color 0.3s ease;
           z-index: 1000;
         }
-
         .navbar-white {
           background-color: #ffffff;
         }
-
         .navbar-scrolled {
           background-color: rgba(10, 10, 10, 0.95);
           backdrop-filter: blur(10px);
         }
 
         .navbar-container {
-          width: 100%;
+          position: relative;
           max-width: 1400px;
           height: 100%;
           margin: 0 auto;
           padding: 0 24px;
           display: flex;
-          justify-content: space-between;
           align-items: center;
+          justify-content: space-between;
         }
-
-        /* Logo styles */
-        .navbar-logo {
-          display: block;
-          height: 50px;
-          z-index: 10;
-        }
-
         .navbar-logo img {
-          height: 100%;
-          width: auto;
-          display: block;
+          height: 50px;
         }
 
-        /* Desktop navigation */
+        /* ---------- desktop nav ---------- */
         .navbar-nav {
           display: none;
         }
-
         .navbar-nav-list {
           display: flex;
           align-items: center;
-          list-style: none;
+          gap: 32px;
           margin: 0;
           padding: 0;
-          gap: 32px;
+          list-style: none;
         }
-
-        .navbar-nav-item {
-          margin: 0;
-        }
-
         .navbar-nav-link {
-          font-size: 16px;
-          font-weight: 500;
-          color: ${whiteBg ? "#1F2937" : "#FFFFFF"};
+          color: ${whiteBg ? "#1f2937" : "#fff"};
           text-decoration: none;
-          transition: color 0.2s ease;
-          padding: 6px 0;
+          font-weight: 500;
           position: relative;
+          padding: 6px 0;
+          transition: color 0.2s;
         }
-
         .navbar-nav-link:after {
           content: "";
           position: absolute;
           bottom: 0;
           left: 0;
-          width: 0;
           height: 2px;
-          background: linear-gradient(90deg, #00b8d4 0%, #00e5ff 100%);
-          transition: width 0.3s ease;
+          width: 0;
+          background: linear-gradient(90deg, #00b8d4, #00e5ff);
+          transition: width 0.3s;
         }
-
         .navbar-nav-link:hover:after,
         .navbar-nav-link.active:after {
           width: 100%;
         }
-
         .navbar-nav-link:hover,
         .navbar-nav-link.active {
           color: #00e5ff;
         }
 
         .navbar-button {
-          display: inline-block;
-          background: linear-gradient(90deg, #00b8d4 0%, #00e5ff 100%);
+          background: linear-gradient(90deg, #00b8d4, #00e5ff);
           color: #000;
-          font-weight: 600;
           padding: 10px 24px;
           border-radius: 50px;
+          font-weight: 600;
           text-decoration: none;
-          transition: all 0.3s ease;
           box-shadow: 0 4px 10px rgba(0, 184, 212, 0.3);
+          transition: transform 0.2s, box-shadow 0.2s;
         }
-
         .navbar-button:hover {
           transform: translateY(-2px);
           box-shadow: 0 6px 15px rgba(0, 184, 212, 0.4);
         }
 
-        /* Mobile menu toggle */
-        .navbar-menu-toggle {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 48px;
-          height: 48px;
-          background: none;
-          border: none;
-          cursor: pointer;
-          color: ${whiteBg ? "#1F2937" : "#FFFFFF"};
-          padding: 0;
-          z-index: 10;
-        }
-
-        /* Mobile menu */
-        .mobile-menu {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background-color: #0a0a0a;
-          z-index: 999;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          opacity: 0;
-          visibility: hidden;
-          transition: opacity 0.3s ease, visibility 0.3s ease;
-          padding: 80px 20px 40px;
-        }
-
-        .mobile-menu.open {
-          opacity: 1;
-          visibility: visible;
-        }
-
-        .mobile-menu-container {
-          width: 100%;
-          max-width: 400px;
-        }
-
-        .mobile-menu-list {
-          list-style: none;
-          margin: 0;
-          padding: 0;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 24px;
-        }
-
-        .mobile-menu-item {
-          width: 100%;
-          text-align: center;
-        }
-
-        .mobile-menu-link {
-          display: block;
-          font-size: 24px;
-          font-weight: 500;
-          color: #ffffff;
-          text-decoration: none;
-          padding: 10px;
-          transition: color 0.2s ease;
-        }
-
-        .mobile-menu-link:hover,
-        .mobile-menu-link.active {
-          color: #00e5ff;
-        }
-
-        .mobile-menu-button {
-          display: inline-block;
-          background: linear-gradient(90deg, #00b8d4 0%, #00e5ff 100%);
-          color: #000;
-          font-weight: 600;
-          padding: 14px 30px;
-          border-radius: 50px;
-          text-decoration: none;
-          margin-top: 20px;
-          width: 80%;
-        }
-
-        /* Responsive adjustments */
+        /* show desktop nav at ≥1024px */
         @media (min-width: 1024px) {
           .navbar-nav {
             display: block;
           }
-
           .navbar-menu-toggle {
             display: none;
           }
         }
 
-        @media (max-width: 1023px) {
-          .navbar-logo {
-            height: 45px;
+        /* ---------- profile icon slot ---------- */
+
+        /* desktop: inside the UL, just a small gap after Join Waitlist */
+        .navbar-profile-desktop {
+          display: none;
+        }
+        @media (min-width: 1024px) {
+          .navbar-profile-desktop {
+            display: flex;
+            align-items: center;
+            /* shrink the gap to only 12px */
+          }
+          .navbar-profile-desktop .user-profile-wrapper {
+            position: static !important;
+            transform: none !important;
+            margin: 0 !important;
+            display: flex !important;
+          }
+        }
+
+        /* tablet & mobile: float absolutely just left of the menu button */
+        .user-profile-wrapper {
+          display: none;
+        }
+        /* tablet: padding is still 24px → 48px(button) + 24px = 72px */
+        @media (max-width: 1023px) and (min-width: 768px) {
+          .user-profile-wrapper {
+            right: 72px !important;
+          }
+        }
+
+        /* mobile: padding is 16px → 48px(button) + 16px = 64px */
+        @media (max-width: 767px) {
+          .user-profile-wrapper {
+            right: 64px !important;
           }
         }
 
         @media (max-width: 767px) {
-          .navbar {
-            height: 70px;
+          .user-icon {
+            font-size: 28px; /* was 22px, now slightly larger */
           }
-
-          .navbar-container {
-            padding: 0 16px;
-          }
-
-          .mobile-menu-link {
-            font-size: 20px;
-          }
-             .profile-container {
-          position: relative;
         }
 
-        .profile-dropdown {
-          position: absolute;
-          top: 100%;
-          right: 0;
-          background: rgba(10, 10, 10, 0.95);
-          border: 1px solid rgba(0, 184, 212, 0.2);
-          border-radius: 8px;
-          padding: 8px 0;
-          z-index: 1000;
-          min-width: 160px;
-        }
-        .profile-dropdown .user-email {
-          padding: 8px 12px;
-          color: #ffffff;
-          font-size: 14px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-          white-space: nowrap;
-        }
-        .profile-logout {
-          width: 100%;
+        /* ---------- mobile menu ---------- */
+        .navbar-menu-toggle {
           background: none;
           border: none;
-          padding: 8px 12px;
-          color: rgba(255, 255, 255, 0.8);
+          cursor: pointer;
+          color: ${whiteBg ? "#1f2937" : "#fff"};
+          z-index: 10;
+        }
+        .mobile-menu {
+          position: fixed;
+          inset: 0;
+          background: #0a0a0a;
           display: flex;
           align-items: center;
-          gap: 8px;
-          cursor: pointer;
-          font-size: 14px;
+          justify-content: center;
+          opacity: 0;
+          visibility: hidden;
+          transition: 0.3s;
+          padding: 80px 20px 40px;
+          z-index: 999;
         }
-        .profile-logout:hover {
-          background-color: rgba(0, 184, 212, 0.1);
+        .mobile-menu.open {
+          opacity: 1;
+          visibility: visible;
+        }
+        .mobile-menu-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+          align-items: center;
+        }
+        .mobile-menu-link {
+          color: #fff;
+          font-size: 24px;
+          text-decoration: none;
+        }
+        .mobile-menu-link.active,
+        .mobile-menu-link:hover {
           color: #00e5ff;
         }
-
-        /* hide on tablet/mobile */
-        @media (max-width: 1023px) {
-          .profile-container {
-            display: none;
-          }
-        }
-
-        /* push to far right on desktop */
-        @media (min-width: 1024px) {
-          .profile-container {
-            margin-left: auto;
-          }
+        .mobile-menu-button {
+          background: linear-gradient(90deg, #00b8d4, #00e5ff);
+          color: #000;
+          padding: 14px 30px;
+          border-radius: 50px;
+          text-decoration: none;
+          font-weight: 600;
         }
       `}</style>
     </>
