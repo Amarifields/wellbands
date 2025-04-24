@@ -130,13 +130,13 @@ const BreathworkGuide = () => {
   }, []);
 
   // Play audio tone for phase transitions
-  const playTone = (frequency, duration = 0.2, volume = 0.2) => {
+  const playTone = async (frequency, duration = 0.2, volume = 0.2) => {
     const ctx = audioRef.current;
     if (!ctx) return;
 
-    // 🔑 unlock WebAudio on mobile (must be inside a user gesture)
+    // 🔑 Make absolutely sure the context is running
     if (ctx.state === "suspended") {
-      ctx.resume().catch(() => {});
+      await ctx.resume();
     }
 
     try {

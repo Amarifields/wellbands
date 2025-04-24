@@ -89,6 +89,9 @@ const FrequencyPlayer = forwardRef((props, ref) => {
 
   // Audio setup - with both binaural and monaural modes
   useEffect(() => {
+    if (audioContextRef.current?.state === "suspended") {
+      audioContextRef.current.resume().catch(() => {});
+    }
     let resumeInterval = null;
     const audioNodes = [];
 
