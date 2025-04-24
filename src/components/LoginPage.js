@@ -95,11 +95,6 @@ function LoginPage() {
 
   return (
     <div className="login-page">
-      <div className="glow-overlay">
-        <div className="glow-top-right"></div>
-        <div className="glow-bottom-left"></div>
-        <div className="glow-accent"></div>
-      </div>
       <Navbar />
       <div className="main-content">
         <div className="container">
