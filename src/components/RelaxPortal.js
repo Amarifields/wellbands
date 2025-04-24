@@ -7,6 +7,7 @@ import FrequencyPlayer from "./FrequencyPlayer";
 import GeometryVisualizer from "./GeometryVisualizer";
 import BreathworkGuide from "./BreathworkGuide";
 import SessionTimer from "./SessionTimer";
+import NeuralCoherenceTrainer from "./NeuralCoherenceTrainer";
 import { FaUserCircle, FaSignOutAlt } from "react-icons/fa";
 import { AuthContext } from "../AuthProvider";
 
@@ -18,6 +19,8 @@ const RelaxPortal = () => {
   const navigate = useNavigate();
   const userMenuRef = useRef(null);
   const frequencyPlayerRef = useRef(null);
+  const neuroCohRef = useRef(null);
+
   const { token, logout } = useContext(AuthContext);
 
   // point this at your deployed backend
@@ -107,6 +110,9 @@ const RelaxPortal = () => {
 
             {/* Session Timer Section */}
             <SessionTimer onComplete={handleTimerComplete} />
+
+            {/* Neural Coherence Trainer Section */}
+            {/*  <NeuralCoherenceTrainer ref={neuroCohRef} /> */}
           </div>
         </main>
 
