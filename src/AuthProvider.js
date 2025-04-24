@@ -1,50 +1,88 @@
-// src/AuthProvider.jsx
 import React, { createContext, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 
 export const AuthContext = createContext({
   token: null,
-  login: (token) => {},
+  login: () => {},
   logout: () => {},
+  loading: true,
 });
 
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
-  const [token, setToken] = useState(() => localStorage.getItem("token"));
+  const [token, setToken] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // login sets token in state+storage
+  useEffect(() => {
+    console.log("[AuthProvider] token is now:", token);
+  }, [token]);
+
+  // login sets token in state + storage
   const login = useCallback((newToken) => {
     localStorage.setItem("token", newToken);
     setToken(newToken);
   }, []);
 
-  // logout clears everything and sends to /login
+  // logout clears token + redirect
   const logout = useCallback(() => {
+    console.log("[AuthProvider] logout() called");
     localStorage.removeItem("token");
     setToken(null);
     navigate("/login", { replace: true });
   }, [navigate]);
 
-  // watch for changes to localStorage from another tab
+  // preload & validate token on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("token");
+    if (stored) {
+      try {
+        const { exp } = jwtDecode(stored);
+        if (Date.now() < exp * 1000) {
+          setToken(stored);
+        } else {
+          localStorage.removeItem("token");
+        }
+      } catch {
+        localStorage.removeItem("token");
+      }
+    }
+    setLoading(false);
+  }, []);
+
+  // sync token across tabs
   useEffect(() => {
     const onStorage = (e) => {
-      if (e.key === "token") setToken(e.newValue);
+      if (e.key === "token") {
+        setToken(e.newValue);
+      }
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  // if token ever becomes null on a protected page, force a redirect
-  useEffect(() => {
-    const protectedPaths = ["/reset"];
-    const path = window.location.pathname;
-    if (!token && protectedPaths.includes(path)) {
-      navigate("/login", { replace: true });
-    }
-  }, [token, navigate]);
+  // show a full-screen loader while we're checking localStorage
+  if (loading) {
+    return (
+      <div
+        style={{
+          width: "100vw",
+          height: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#000",
+          color: "#fff",
+          fontSize: "1.2rem",
+        }}
+      >
+        Loading…
+      </div>
+    );
+  }
 
   return (
-    <AuthContext.Provider value={{ token, login, logout }}>
+    <AuthContext.Provider value={{ token, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

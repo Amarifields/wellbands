@@ -63,50 +63,9 @@ const RelaxPortal = () => {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // logout via the AuthProvider
-  const handleLogout = () => {
-    logout();
-  };
-
-  // **BRANDED FULL-SCREEN LOADER**
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-gradient z-50">
-        <div className="text-center">
-          <div className="loader mb-6 mx-auto"></div>
-          <h2 className="text-2xl font-semibold text-white">
-            Preparing your Reset Portal…
-          </h2>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-gradient min-h-screen relative">
-      <Navbar>
-        {/* User Profile Button - Positioned for better responsiveness */}
-        <div className="user-profile-wrapper" ref={userMenuRef}>
-          <button
-            className="user-profile-button"
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            aria-label="User menu"
-          >
-            <FaUserCircle className="user-icon" />
-          </button>
-
-          {showUserMenu && (
-            <div className="user-dropdown">
-              <div className="user-email">{userEmail}</div>
-              <div className="menu-divider"></div>
-              <button className="logout-button" onClick={handleLogout}>
-                <FaSignOutAlt className="logout-icon" />
-                Log Out
-              </button>
-            </div>
-          )}
-        </div>
-      </Navbar>
+      <Navbar />
 
       {/* Full-screen Canvas for Background Particles */}
       <canvas

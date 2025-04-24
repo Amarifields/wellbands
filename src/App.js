@@ -22,11 +22,13 @@ function App() {
   useEffect(() => {
     ReactGA.initialize("G-SCNR0FCM1S", { debug_mode: true });
     ReactGA.send({ hitType: "pageview", page: location.pathname });
+    window.ttq && window.ttq.page();
   }, []);
 
   // track subsequent pageviews
   useEffect(() => {
     ReactGA.send({ hitType: "pageview", page: location.pathname });
+    window.ttq && window.ttq.page();
   }, [location]);
 
   // helper for instant sync with localStorage

@@ -1,12 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FaBars, FaTimes } from "react-icons/fa";
+import { FaBars, FaTimes, FaUserCircle, FaSignOutAlt } from "react-icons/fa";
+import { AuthContext } from "../../AuthProvider";
 import logo from "../../assets/logo.png";
 
-const Navbar = ({ whiteBg = false, children }) => {
+const Navbar = ({ whiteBg = false }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const location = useLocation();
+
+  const { token, logout } = useContext(AuthContext);
+  const userMenuRef = useRef(null);
 
   // handle scroll → background
   useEffect(() => {
@@ -69,26 +74,59 @@ const Navbar = ({ whiteBg = false, children }) => {
                 </Link>
               </li>
 
-              {/* Desktop-only profile slot */}
-              {children && (
-                <li className="navbar-nav-item navbar-profile-desktop">
-                  {children}
+              {/* Desktop-only user menu */}
+              {token && location.pathname === "/reset" && (
+                <li className="navbar-nav-item relative">
+                  <div ref={userMenuRef}>
+                    <button
+                      className="user-profile-button"
+                      onClick={() => setShowUserMenu((v) => !v)}
+                    >
+                      <FaUserCircle className="user-icon" />
+                    </button>
+                    {showUserMenu && (
+                      <div className="user-dropdown">
+                        <button className="logout-button" onClick={logout}>
+                          <FaSignOutAlt className="logout-icon" /> Log Out
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </li>
               )}
             </ul>
           </nav>
 
-          {/* Tablet/Mobile: absolute float */}
-          {children}
+          {/* Mobile/Tablet: logout + hamburger together */}
+          <div className="mobile-toggle-wrapper">
+            {token && location.pathname === "/reset" && (
+              <div className="relative mr-2" ref={userMenuRef}>
+                <button
+                  className="p-2 text-white"
+                  onClick={() => setShowUserMenu((v) => !v)}
+                  aria-label="User menu"
+                >
+                  <FaUserCircle size={24} />
+                </button>
+                {showUserMenu && (
+                  <div className="user-dropdown">
+                    <button className="logout-button" onClick={logout}>
+                      <FaSignOutAlt className="logout-icon" /> Log Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
-          {/* Mobile toggle */}
-          <button
-            className="navbar-menu-toggle"
-            onClick={() => setMenuOpen((o) => !o)}
-            aria-label="Toggle navigation menu"
-          >
-            {menuOpen ? <FaTimes size={28} /> : <FaBars size={28} />}
-          </button>
+            {/* hamburger toggle stays unchanged */}
+            <button
+              className="navbar-menu-toggle"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-label="Toggle navigation menu"
+            >
+              {menuOpen ? <FaTimes size={28} /> : <FaBars size={28} />}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -228,49 +266,21 @@ const Navbar = ({ whiteBg = false, children }) => {
           .navbar-menu-toggle {
             display: none;
           }
+          .navbar-cta {
+            margin-left: auto;
+          }
         }
 
-        /* ---------- profile icon slot ---------- */
-
-        /* desktop: inside the UL, just a small gap after Join Waitlist */
-        .navbar-profile-desktop {
-          display: none;
+        /* mobile toggle (hamburger + optional user icon) */
+        .mobile-toggle-wrapper {
+          display: flex;
+          align-items: center;
         }
+
+        /* hide on desktop so <nav margin-left:auto> can push itself right */
         @media (min-width: 1024px) {
-          .navbar-profile-desktop {
-            display: flex;
-            align-items: center;
-            /* shrink the gap to only 12px */
-          }
-          .navbar-profile-desktop .user-profile-wrapper {
-            position: static !important;
-            transform: none !important;
-            margin: 0 !important;
-            display: flex !important;
-          }
-        }
-
-        /* tablet & mobile: float absolutely just left of the menu button */
-        .user-profile-wrapper {
-          display: none;
-        }
-        /* tablet: padding is still 24px → 48px(button) + 24px = 72px */
-        @media (max-width: 1023px) and (min-width: 768px) {
-          .user-profile-wrapper {
-            right: 72px !important;
-          }
-        }
-
-        /* mobile: padding is 16px → 48px(button) + 16px = 64px */
-        @media (max-width: 767px) {
-          .user-profile-wrapper {
-            right: 64px !important;
-          }
-        }
-
-        @media (max-width: 767px) {
-          .user-icon {
-            font-size: 28px; /* was 22px, now slightly larger */
+          .mobile-toggle-wrapper {
+            display: none;
           }
         }
 

@@ -83,19 +83,28 @@ const ResetPortal = () => {
     setIsVideoPlaying((v) => !v);
   };
 
+  // replace your existing scrollTestimonials(...) with:
   const scrollTestimonials = (direction) => {
-    const maxPages = Math.ceil(testimonials.length / 3) - 1;
-    if (direction === "next" && testimonialPage < maxPages) {
-      setTestimonialPage(testimonialPage + 1);
-    } else if (direction === "prev" && testimonialPage > 0) {
-      setTestimonialPage(testimonialPage - 1);
-    }
+    // 1) figure out how many pages there actually are right now
+    const maxPages = Math.ceil(testimonials.length / itemsPerPage) - 1;
 
+    // 2) compute the target page index
+    const newPage =
+      direction === "next"
+        ? Math.min(testimonialPage + 1, maxPages)
+        : Math.max(testimonialPage - 1, 0);
+
+    // if nothing changed, bail
+    if (newPage === testimonialPage) return;
+
+    // 3) update state
+    setTestimonialPage(newPage);
+
+    // 4) scroll the container to exactly that page
     if (testimonialScrollRef.current) {
-      testimonialScrollRef.current.scrollTo({
-        left:
-          testimonialScrollRef.current.clientWidth *
-          (direction === "next" ? testimonialPage + 1 : testimonialPage - 1),
+      const container = testimonialScrollRef.current;
+      container.scrollTo({
+        left: container.clientWidth * newPage,
         behavior: "smooth",
       });
     }

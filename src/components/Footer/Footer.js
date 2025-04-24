@@ -285,6 +285,18 @@ const Footer = () => {
           }
         }
 
+        @media (max-width: 639px) {
+          .social-icons {
+            flex-wrap: nowrap; /* never wrap to a second row */
+            justify-content: center; /* center the icons horizontally */
+            overflow-x: auto; /* allow a tiny bit of scrolling if they overflow */
+            padding-bottom: 4px; /* give a little breathing room under the icons */
+          }
+          .social-icons::-webkit-scrollbar {
+            display: none; /* hide the scrollbar on WebKit browsers */
+          }
+        }
+
         @media (min-width: 768px) {
           .footer {
             padding: 70px 32px 30px;

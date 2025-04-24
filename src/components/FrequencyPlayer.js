@@ -135,7 +135,8 @@ const FrequencyPlayer = forwardRef((props, ref) => {
         gain.connect(ctx.destination);
         gainNodeRef.current = gain;
       }
-      gain.gain.setValueAtTime(volume, ctx.currentTime);
+      gain.gain.setValueAtTime(0.001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(volume, ctx.currentTime + 0.2);
 
       // 3) stereo detection
       const canPlayStereo =
@@ -222,15 +223,27 @@ const FrequencyPlayer = forwardRef((props, ref) => {
     }
 
     return () => {
-      // stop all oscillators
-      audioNodes.forEach((node) => {
-        try {
-          node.stop();
-        } catch {}
-      });
-      // stop animation
+      const ctx = audioContextRef.current;
+      const gain = gainNodeRef.current;
+      if (ctx && gain) {
+        const now = ctx.currentTime;
+        // kill any scheduled ramps, grab current gain
+        gain.gain.cancelScheduledValues(now);
+        gain.gain.setValueAtTime(gain.gain.value, now);
+        // fade down to near zero over 0.2s
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+        // schedule oscillator stops just after the fade
+        const { left, right, mono } = oscillatorsRef.current;
+        left?.stop(now + 0.2);
+        right?.stop(now + 0.2);
+        mono?.stop(now + 0.2);
+      }
+
+      // stop the visualizer loop
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
-      // remove listeners / intervals
+
+      // remove device listener & any intervals
       navigator.mediaDevices?.removeEventListener(
         "devicechange",
         handleDeviceChange
@@ -254,199 +267,150 @@ const FrequencyPlayer = forwardRef((props, ref) => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
+    // Resize to match CSS size & devicePixelRatio
     const resizeCanvas = () => {
       canvas.width = canvas.clientWidth * window.devicePixelRatio;
       canvas.height = canvas.clientHeight * window.devicePixelRatio;
       ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     };
 
-    // Set up canvas for high-res displays
+    // Initial setup + listen for future CSS resizes
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-
     const drawVisualizer = () => {
+      // Re-resize *and* re-measure before each frame
+      resizeCanvas();
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+
+      ctx.clearRect(0, 0, width, height);
+
+      const trackColor = tracks[trackKey].color;
+      const time =
+        (audioContextRef.current?.currentTime || 0) - startTimeRef.current;
+
       if (!isPlaying || !audioContextRef.current) {
-        // Still draw something when not playing
-        ctx.clearRect(0, 0, width, height);
-        drawIdleState();
+        // Idle state (no audio playing)
+        drawIdleState(width, height, trackColor, time);
         animationRef.current = requestAnimationFrame(drawVisualizer);
         return;
       }
 
-      ctx.clearRect(0, 0, width, height);
-
-      // Create gradient based on current track color
-      const trackColor = tracks[trackKey].color;
-      const gradient = ctx.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, `${trackColor}60`);
-      gradient.addColorStop(1, `${trackColor}20`);
-
-      // Draw frequency wave patterns
-      const time = audioContextRef.current.currentTime - startTimeRef.current;
+      // Active state: draw your binaural or monaural waves
       ctx.lineWidth = 2;
       ctx.strokeStyle = trackColor;
 
-      // Draw waves based on playback mode
       if (useBinauralMode) {
         const [fL, fR] = tracks[trackKey].freqs;
 
-        // Left channel wave
+        // Left wave
         ctx.beginPath();
         for (let i = 0; i < width; i++) {
-          const x = i;
           const y =
             height / 2 +
             Math.sin((time * fL) / 20 + i / 10) *
               (height / 4) *
               Math.sin((i / width) * Math.PI);
-
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
+          i === 0 ? ctx.moveTo(i, y) : ctx.lineTo(i, y);
         }
         ctx.stroke();
 
-        // Right channel wave
+        // Right wave
         ctx.beginPath();
         ctx.strokeStyle = `${trackColor}90`;
         for (let i = 0; i < width; i++) {
-          const x = i;
           const y =
             height / 2 +
             Math.sin((time * fR) / 20 + i / 10) *
               (height / 4) *
               Math.sin((i / width) * Math.PI + 0.2);
-
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
+          i === 0 ? ctx.moveTo(i, y) : ctx.lineTo(i, y);
         }
         ctx.stroke();
       } else {
-        // Monaural wave (single wave with amplitude modulation)
-        const baseFreq = tracks[trackKey].monoFreq;
-        const beatFreq = tracks[trackKey].beatFreq;
+        // Monaural w/ amplitude modulation
+        const { monoFreq: baseFreq, beatFreq } = tracks[trackKey];
 
         ctx.beginPath();
         for (let i = 0; i < width; i++) {
-          const x = i;
-          // Base wave
           const baseWave = Math.sin((time * baseFreq) / 20 + i / 10);
-          // Amplitude modulation
-          const modulation =
-            beatFreq > 0 ? 0.5 + 0.5 * Math.sin(time * beatFreq) : 1;
-
+          const mod = beatFreq ? 0.5 + 0.5 * Math.sin(time * beatFreq) : 1;
           const y =
             height / 2 +
-            baseWave *
-              modulation *
-              (height / 4) *
-              Math.sin((i / width) * Math.PI);
-
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
+            baseWave * mod * (height / 4) * Math.sin((i / width) * Math.PI);
+          i === 0 ? ctx.moveTo(i, y) : ctx.lineTo(i, y);
         }
         ctx.stroke();
 
-        // Second wave for visual interest
+        // Second shimmer wave
         ctx.beginPath();
         ctx.strokeStyle = `${trackColor}50`;
         for (let i = 0; i < width; i++) {
-          const x = i;
           const baseWave = Math.sin((time * baseFreq * 1.005) / 20 + i / 10);
-          const modulation =
-            beatFreq > 0 ? 0.5 + 0.5 * Math.sin(time * beatFreq) : 1;
-
+          const mod = beatFreq ? 0.5 + 0.5 * Math.sin(time * beatFreq) : 1;
           const y =
             height / 2 +
             baseWave *
-              modulation *
+              mod *
               (height / 4) *
               Math.sin((i / width) * Math.PI + 0.1);
-
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
+          i === 0 ? ctx.moveTo(i, y) : ctx.lineTo(i, y);
         }
         ctx.stroke();
       }
 
-      // Particles for extra effect
+      // Particles overlay
       const particleCount = 20;
-      ctx.fillStyle = trackColor;
-
       for (let i = 0; i < particleCount; i++) {
-        const particleSize = Math.random() * 3 + 1;
+        const size = Math.random() * 3 + 1;
         const x = width * Math.random();
         const waveOffset = Math.sin(time * 2 + i) * 30;
         const y = height / 2 + waveOffset;
-
         ctx.globalAlpha = 0.3 + Math.sin(time + i) * 0.2;
         ctx.beginPath();
-        ctx.arc(x, y, particleSize, 0, Math.PI * 2);
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fillStyle = trackColor;
         ctx.fill();
       }
-
       ctx.globalAlpha = 1;
+
+      // Loop
       animationRef.current = requestAnimationFrame(drawVisualizer);
     };
 
-    // Draw something when not playing
-    const drawIdleState = () => {
-      const trackColor = tracks[trackKey].color;
-
-      // Draw a gentle pulsing line
-      const time = performance.now() / 1000;
+    // Draw when nothing is playing
+    const drawIdleState = (width, height, trackColor, time) => {
+      ctx.clearRect(0, 0, width, height);
       ctx.strokeStyle = `${trackColor}60`;
       ctx.lineWidth = 2;
-
       ctx.beginPath();
       for (let i = 0; i < width; i++) {
-        const x = i;
         const y = height / 2 + Math.sin(time / 2 + i / 30) * 5;
-        if (i === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
+        i === 0 ? ctx.moveTo(i, y) : ctx.lineTo(i, y);
       }
       ctx.stroke();
 
-      // Draw few subtle particles
-      ctx.fillStyle = trackColor;
+      // Gentle particles
       for (let i = 0; i < 10; i++) {
         const size = Math.random() * 2 + 0.5;
         const x = width * Math.random();
         const y = height / 2 + (Math.random() - 0.5) * 20;
-
         ctx.globalAlpha = 0.1 + Math.sin(time + i) * 0.1;
         ctx.beginPath();
         ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fillStyle = trackColor;
         ctx.fill();
       }
-
       ctx.globalAlpha = 1;
     };
 
+    // Kick it off
     animationRef.current = requestAnimationFrame(drawVisualizer);
 
     return () => {
       window.removeEventListener("resize", resizeCanvas);
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
   };
 
@@ -457,6 +421,24 @@ const FrequencyPlayer = forwardRef((props, ref) => {
         cancelAnimationFrame(animationRef.current);
       }
     };
+  }, []);
+
+  // right after your other imports/useEffects
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+
+    const resizeCanvas = () => {
+      canvas.width = canvas.clientWidth * window.devicePixelRatio;
+      canvas.height = canvas.clientHeight * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    };
+
+    resizeCanvas();
+    const ro = new ResizeObserver(resizeCanvas);
+    ro.observe(canvas);
+
+    return () => ro.disconnect();
   }, []);
 
   const { label, help } = tracks[trackKey];
