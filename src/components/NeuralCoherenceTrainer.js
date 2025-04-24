@@ -174,16 +174,14 @@ const NeuralCoherenceTrainer = forwardRef((props, ref) => {
 
         mediaStreamRef.current = stream;
         setCameraAllowed(true);
-
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-
-          // Resize overlay canvas to match video dimensions
-          if (overlayCanvasRef.current) {
-            overlayCanvasRef.current.width = videoRef.current.videoWidth;
-            overlayCanvasRef.current.height = videoRef.current.videoHeight;
-          }
+          // only play once metadata is ready
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current.play().catch((err) => {
+              console.warn("Video playback interrupted:", err);
+            });
+          };
         }
       } catch (err) {
         console.error("Camera access error:", err);

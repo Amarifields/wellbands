@@ -124,6 +124,14 @@ const RelaxPortal = () => {
 
       {/* Inline Global Styles */}
       <style>{`
+
+      html, body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+  
     
        .geometry-container:fullscreen,
   .geometry-container:-webkit-full-screen,
@@ -394,6 +402,31 @@ const RelaxPortal = () => {
           background-clip: text;
           -webkit-text-fill-color: transparent;
         }
+          
+     @media (max-width: 456px) {
+  .section-title {
+    font-size: 28px;
+    line-height: 1.2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  
+  .section-title span {
+    margin-right: 0 !important;
+  }
+  
+  header.w-full {
+    padding-top: 85px; /* Restore proper top spacing */
+    padding-bottom: 4px;
+  }
+  
+  .container.mx-auto.px-4.section-header {
+    margin-top: 12px;
+  }
+}
+
         
    /* 1) Hide the wrapper by default on desktop */
         .user-profile-wrapper {
