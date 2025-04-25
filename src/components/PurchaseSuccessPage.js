@@ -121,6 +121,28 @@ export default function PurchaseSuccessPage() {
     );
   }
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const sessionId = params.get("session_id");
+
+    if (!sessionId) {
+      setIsValidPurchase(false);
+    } else {
+      const emailFromUrl = params.get("email");
+      if (emailFromUrl) setEmail(emailFromUrl);
+
+      // 🔥 Fire TikTok Purchase Event here
+      if (window.ttq) {
+        window.ttq.track("CompletePayment", {
+          value: 17,
+          currency: "USD",
+        });
+      }
+    }
+
+    setIsChecking(false);
+  }, [location]);
+
   return (
     <div className="purchase-success-page">
       <Navbar />
