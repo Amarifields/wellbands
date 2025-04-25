@@ -1,4 +1,3 @@
-// src/components/PurchaseSuccessPage.js
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
@@ -33,20 +32,23 @@ export default function PurchaseSuccessPage() {
   const location = useLocation();
   const { login } = useContext(AuthContext);
 
-  // 1️⃣ Verify purchase
+  // 1️⃣ On mount: grab session_id & email from URL, then immediately clean URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const sessionId = params.get("session_id");
+    const emailFromUrl = params.get("email");
 
     if (!sessionId) {
       setIsValidPurchase(false);
     } else {
-      const emailFromUrl = params.get("email");
       if (emailFromUrl) setEmail(emailFromUrl);
     }
 
+    // strip off all query params in-place, keep path only
+    navigate("/purchase-success", { replace: true });
+
     setIsChecking(false);
-  }, [location]);
+  }, []);
 
   // 2️⃣ Generate secure random password
   const generatePassword = () => {
@@ -60,23 +62,18 @@ export default function PurchaseSuccessPage() {
     setConfirmPassword(pw);
   };
 
-  // 3️⃣ Submit to backend to create user & Firebase entry
+  // 3️⃣ Submit to backend to create user & log in
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
     try {
-      // 1️⃣ Call your register endpoint
       const resp = await axios.post(`${API_URL}/api/auth/register`, {
         email,
         password,
       });
-
-      // 2️⃣ Tell your AuthProvider about the new token
       login(resp.data.token);
-
-      // 3️⃣ Show success & redirect into your /reset flow
       setSuccess(true);
       setTimeout(() => navigate("/reset", { replace: true }), 3000);
     } catch (err) {
@@ -98,50 +95,9 @@ export default function PurchaseSuccessPage() {
           <div className="loading-spinner" />
           <p>Verifying purchase...</p>
         </div>
-        {/* keep your spinner CSS here */}
       </div>
     );
   }
-
-  if (!isValidPurchase) {
-    return (
-      <div className="purchase-success-page">
-        <Navbar />
-        <div className="main-content">
-          <div className="container">
-            <div className="access-denied-card">
-              <FaLock className="access-denied-icon" />
-              <h1 className="section-title">Access Denied</h1>
-              <p>Redirecting to login…</p>
-            </div>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const sessionId = params.get("session_id");
-
-    if (!sessionId) {
-      setIsValidPurchase(false);
-    } else {
-      const emailFromUrl = params.get("email");
-      if (emailFromUrl) setEmail(emailFromUrl);
-
-      // 🔥 Fire TikTok Purchase Event here
-      if (window.ttq) {
-        window.ttq.track("CompletePayment", {
-          value: 17,
-          currency: "USD",
-        });
-      }
-    }
-
-    setIsChecking(false);
-  }, [location]);
 
   return (
     <div className="purchase-success-page">
@@ -162,13 +118,11 @@ export default function PurchaseSuccessPage() {
           ) : (
             <form className="purchase-card" onSubmit={handleSubmit}>
               <h1 className="section-title">Create Your Account</h1>
-
               {error && (
                 <div className="error-message">
                   <p>{error}</p>
                 </div>
               )}
-
               <div className="form-group">
                 <label htmlFor="email" className="form-label">
                   Email Address
@@ -182,7 +136,6 @@ export default function PurchaseSuccessPage() {
                   className="form-input"
                 />
               </div>
-
               <div className="form-group">
                 <div className="label-with-action">
                   <label htmlFor="password" className="form-label">
@@ -205,7 +158,6 @@ export default function PurchaseSuccessPage() {
                   className="form-input"
                 />
               </div>
-
               <div className="form-group">
                 <label htmlFor="confirmPassword" className="form-label">
                   Confirm Password
@@ -219,7 +171,6 @@ export default function PurchaseSuccessPage() {
                   className="form-input"
                 />
               </div>
-
               <button
                 type="submit"
                 className="btn-primary"
@@ -228,7 +179,6 @@ export default function PurchaseSuccessPage() {
                 {isLoading ? "Creating…" : "Create & Access Portal"}{" "}
                 {!isLoading && <FaArrowRight className="button-icon" />}
               </button>
-
               <div className="security-note">
                 <FaShieldAlt /> Your data is encrypted.
               </div>
