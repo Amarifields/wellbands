@@ -37,18 +37,28 @@ export default function PurchaseSuccessPage() {
     const params = new URLSearchParams(location.search);
     const sessionId = params.get("session_id");
     const emailFromUrl = params.get("email");
+    const priceParam = parseFloat(params.get("price")); // optional if you're passing this
+    const price = priceParam || 17.0; // fallback to default value if not passed
 
     if (!sessionId) {
       setIsValidPurchase(false);
     } else {
       if (emailFromUrl) setEmail(emailFromUrl);
+
+      // ✅ Fire TikTok Purchase event with proper value + currency
+      if (window.ttq) {
+        window.ttq.track("CompletePayment", {
+          value: price,
+          currency: "USD",
+        });
+      }
     }
 
-    // strip off all query params in-place, keep path only
+    // ✅ Strip query params (clean up the URL without reloading the page)
     navigate("/purchase-success", { replace: true });
 
     setIsChecking(false);
-  }, []);
+  }, [location, navigate]);
 
   // 2️⃣ Generate secure random password
   const generatePassword = () => {
