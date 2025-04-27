@@ -20,6 +20,36 @@ const FrequencyPlayer = forwardRef((props, ref) => {
   const oscillatorsRef = useRef({ left: null, right: null, mono: null });
   const gainNodeRef = useRef(null);
 
+  const autoPlayAttemptsRef = useRef(0);
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    if (!audioContextRef.current) {
+      try {
+        audioContextRef.current = new (window.AudioContext ||
+          window.webkitAudioContext)();
+
+        // Add event listeners to help with autoplay
+        document.addEventListener("click", attemptAutoPlay, { once: true });
+        document.addEventListener("touchstart", attemptAutoPlay, {
+          once: true,
+        });
+        document.addEventListener("keydown", attemptAutoPlay, { once: true });
+
+        // Try auto-play immediately
+        attemptAutoPlay();
+      } catch (e) {
+        console.warn("Failed to initialize AudioContext:", e);
+      }
+    }
+
+    return () => {
+      document.removeEventListener("click", attemptAutoPlay);
+      document.removeEventListener("touchstart", attemptAutoPlay);
+      document.removeEventListener("keydown", attemptAutoPlay);
+    };
+  }, []);
+
   // Expose methods via ref for external control (like SessionTimer)
   useImperativeHandle(ref, () => ({
     stopAudio: () => {
@@ -34,6 +64,31 @@ const FrequencyPlayer = forwardRef((props, ref) => {
       }
     },
   }));
+
+  const attemptAutoPlay = () => {
+    const ctx = audioContextRef.current;
+    if (ctx && ctx.state === "suspended") {
+      ctx
+        .resume()
+        .then(() => {
+          console.log("AudioContext resumed successfully");
+          if (!initializedRef.current) {
+            initializedRef.current = true;
+            setIsPlaying(true);
+          }
+        })
+        .catch((e) => {
+          console.warn("Failed to resume AudioContext:", e);
+          autoPlayAttemptsRef.current++;
+          if (autoPlayAttemptsRef.current < 10) {
+            setTimeout(attemptAutoPlay, 500);
+          }
+        });
+    } else if (ctx && ctx.state === "running" && !initializedRef.current) {
+      initializedRef.current = true;
+      setIsPlaying(true);
+    }
+  };
 
   // Enhanced tracks with adjusted frequency ranges for better speaker performance
   const tracks = {
@@ -99,7 +154,10 @@ const FrequencyPlayer = forwardRef((props, ref) => {
     const tryResume = () => {
       const ctx = audioContextRef.current;
       if (ctx && ctx.state === "suspended") {
-        ctx.resume().catch(() => {});
+        ctx
+          .resume()
+          .then(() => console.log("Context resumed by tryResume"))
+          .catch((e) => console.warn("Error resuming AudioContext:", e));
       }
     };
 
@@ -476,7 +534,10 @@ const FrequencyPlayer = forwardRef((props, ref) => {
           <div className="flex flex-col space-y-4">
             {/* Play button */}
             <button
-              onClick={() => setIsPlaying((p) => !p)}
+              onClick={() => {
+                setIsPlaying((p) => !p);
+                if (!isPlaying) attemptAutoPlay();
+              }}
               className={`py-3 rounded-lg flex items-center justify-center shadow-lg transition-all duration-300 ${
                 isPlaying
                   ? "bg-gradient-to-r from-red-500/80 to-red-600/80 text-white"

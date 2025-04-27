@@ -95,6 +95,8 @@ const BreathworkGuide = () => {
   const phaseRef = useRef(phase);
   const patternRef = useRef(pattern);
   const cycleCountRef = useRef(cycleCount);
+  const autoPlayAttemptsRef = useRef(0);
+  const initializedRef = useRef(false);
 
   // Update refs when state changes
   useEffect(() => {
@@ -118,13 +120,29 @@ const BreathworkGuide = () => {
     try {
       audioRef.current = new (window.AudioContext ||
         window.webkitAudioContext)();
+
+      // Add event listeners to initialize audio
+      document.addEventListener("click", initializeAudio, { once: true });
+      document.addEventListener("touchstart", initializeAudio, { once: true });
+      document.addEventListener("keydown", initializeAudio, { once: true });
+
+      // Try initializing immediately
+      initializeAudio();
     } catch (e) {
       console.warn("Web Audio API not supported in this browser");
     }
 
     return () => {
+      document.removeEventListener("click", initializeAudio);
+      document.removeEventListener("touchstart", initializeAudio);
+      document.removeEventListener("keydown", initializeAudio);
+
       if (audioRef.current) {
-        audioRef.current.close().catch(() => {});
+        try {
+          audioRef.current.close().catch(() => {});
+        } catch (e) {
+          console.warn("Error closing audio context:", e);
+        }
       }
     };
   }, []);
@@ -132,11 +150,27 @@ const BreathworkGuide = () => {
   // Play audio tone for phase transitions
   const playTone = async (frequency, duration = 0.2, volume = 0.2) => {
     const ctx = audioRef.current;
-    if (!ctx) return;
+    if (!ctx) {
+      try {
+        audioRef.current = new (window.AudioContext ||
+          window.webkitAudioContext)();
+        playTone(frequency, duration, volume); // Retry with new context
+        return;
+      } catch (e) {
+        console.warn("Cannot create AudioContext:", e);
+        return;
+      }
+    }
 
-    // 🔑 Make absolutely sure the context is running
+    // Make absolutely sure the context is running
     if (ctx.state === "suspended") {
-      await ctx.resume();
+      try {
+        await ctx.resume();
+      } catch (e) {
+        console.warn("Failed to resume audio context:", e);
+        setTimeout(() => playTone(frequency, duration, volume), 300);
+        return;
+      }
     }
 
     try {
@@ -261,6 +295,8 @@ const BreathworkGuide = () => {
   // Start the breathing session
   const start = () => {
     if (active) return;
+
+    initializeAudio();
 
     // 🔑 unlock WebAudio on first tap
     const ctx = audioRef.current;
@@ -435,6 +471,36 @@ const BreathworkGuide = () => {
           ? `${animationName} ${duration}s ${timingFunction} forwards`
           : "none",
     };
+  };
+
+  const initializeAudio = () => {
+    if (!audioRef.current) {
+      try {
+        audioRef.current = new (window.AudioContext ||
+          window.webkitAudioContext)();
+      } catch (e) {
+        console.warn("Web Audio API not supported in this browser");
+        return;
+      }
+    }
+
+    if (audioRef.current?.state === "suspended") {
+      audioRef.current
+        .resume()
+        .then(() => {
+          console.log("BreathworkGuide AudioContext resumed");
+          if (!initializedRef.current) {
+            initializedRef.current = true;
+          }
+        })
+        .catch((e) => {
+          console.warn("Failed to resume BreathworkGuide AudioContext:", e);
+          autoPlayAttemptsRef.current++;
+          if (autoPlayAttemptsRef.current < 10) {
+            setTimeout(initializeAudio, 500);
+          }
+        });
+    }
   };
 
   return (
