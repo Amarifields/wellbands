@@ -36,7 +36,10 @@
 
     <!-- Create React App defaults -->
     <meta name="theme-color" content="#000000" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 
@@ -99,6 +102,53 @@
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
+
+    <!-- Fix for mobile zoom and centering issues -->
+    <script>
+      // This script fixes the Safari/iOS zooming issue on page load
+      document.addEventListener("DOMContentLoaded", function () {
+        // Prevent zooming on iOS/Safari
+        document.documentElement.addEventListener(
+          "touchstart",
+          function (e) {
+            if (e.touches.length > 1) {
+              e.preventDefault();
+            }
+          },
+          { passive: false }
+        );
+
+        // Reset zoom and scroll position after login
+        if (window.location.pathname.includes("/reset")) {
+          setTimeout(function () {
+            // Force proper scaling and positioning
+            window.scrollTo(0, 0);
+
+            // Target the GeometryVisualizer to ensure it's properly positioned
+            const geometryElements = document.querySelectorAll(
+              ".pattern-container, .geometry-canvas"
+            );
+            if (geometryElements.length > 0) {
+              geometryElements.forEach((el) => {
+                // Apply explicit sizing
+                el.style.width = "100%";
+                el.style.height = "auto";
+                el.style.transform = "none";
+                el.style.position = "relative";
+              });
+            }
+          }, 100);
+        }
+      });
+
+      // Additional fix for iOS Safari rendering issues
+      window.addEventListener("pageshow", function (event) {
+        if (event.persisted) {
+          // Page was loaded from back/forward cache
+          window.location.reload();
+        }
+      });
+    </script>
 
     <!-- Performance optimization script - ADD THIS RIGHT HERE -->
     <script>

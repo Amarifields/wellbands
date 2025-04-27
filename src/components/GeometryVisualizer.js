@@ -10,6 +10,56 @@ const SacredGeometry = () => {
   const containerRef = useRef(null);
   const visualizerRef = useRef(null);
 
+  // Add this useEffect to your SacredGeometry component
+  useEffect(() => {
+    // Fix for mobile zooming and rendering issues specifically for geometry visualizer
+    const fixMobileView = () => {
+      // Check if we're on mobile
+      const isMobile =
+        window.innerWidth < 768 ||
+        /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      if (isMobile) {
+        // Force correct viewport scale
+        document
+          .querySelector('meta[name="viewport"]')
+          .setAttribute(
+            "content",
+            "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+          );
+
+        // Reset any potential zoom
+        document.documentElement.style.zoom = 1;
+
+        // Ensure container and canvas are properly scaled
+        if (containerRef.current) {
+          // Clear any transforms that might be causing the zoom issue
+          containerRef.current.style.transform = "none";
+
+          // Ensure correct sizing
+          const canvas = containerRef.current.querySelector(".geometry-canvas");
+          if (canvas) {
+            canvas.style.width = "100%";
+            canvas.style.height = "100%";
+            canvas.style.transform = "none";
+          }
+        }
+      }
+    };
+
+    // Run the fix on mount
+    fixMobileView();
+
+    // Also run on orientation change and resize
+    window.addEventListener("orientationchange", fixMobileView);
+    window.addEventListener("resize", fixMobileView);
+
+    return () => {
+      window.removeEventListener("orientationchange", fixMobileView);
+      window.removeEventListener("resize", fixMobileView);
+    };
+  }, []);
+
   // Add GA tracking when pattern changes
   const handlePatternChange = (pattern) => {
     setActivePattern(pattern);
@@ -489,6 +539,28 @@ class GeometryVisualizer {
 
     // Redraw
     this.draw();
+  }
+
+  fixMobileRendering() {
+    // Check if we're on a mobile device
+    const isMobile =
+      window.innerWidth < 768 ||
+      /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      // Fix for iOS Safari rendering issues
+      this.canvas.style.width = "100%";
+      this.canvas.style.height = "100%";
+      this.canvas.style.transform = "none";
+
+      // Apply hardware acceleration
+      this.canvas.style.transform = "translateZ(0)";
+      this.canvas.style.backfaceVisibility = "hidden";
+
+      // Improve rendering quality
+      this.ctx.imageSmoothingEnabled = true;
+      this.ctx.imageSmoothingQuality = "high";
+    }
   }
 
   onFullscreenChange() {
