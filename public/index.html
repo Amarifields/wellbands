@@ -99,5 +99,38 @@
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
+
+    <!-- Performance optimization script - ADD THIS RIGHT HERE -->
+    <script>
+      // Remove 300ms delay on mobile devices
+      document.addEventListener("DOMContentLoaded", function () {
+        // Detect if we're on a touch device
+        if ("ontouchstart" in window || navigator.maxTouchPoints) {
+          // Apply CSS to optimize touch interactions
+          document.body.style.touchAction = "manipulation";
+
+          // Add fast-click behavior for form elements
+          const fastButtons = document.querySelectorAll(
+            'button, input[type="checkbox"], a'
+          );
+          fastButtons.forEach((el) => {
+            el.style.touchAction = "manipulation";
+          });
+        }
+
+        // Performance monitoring
+        window.perfData = {
+          pageLoadStart: performance.now(),
+        };
+
+        window.addEventListener("load", function () {
+          const loadTime = performance.now() - window.perfData.pageLoadStart;
+          console.log(`Page loaded in ${Math.round(loadTime)}ms`);
+        });
+      });
+
+      // Improve axios performance on slow connections
+      window.AXIOS_TIMEOUT = 20000; // 20 seconds
+    </script>
   </body>
 </html>

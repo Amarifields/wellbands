@@ -47,8 +47,8 @@ export default function PurchaseSuccessPage() {
 
       // ✅ Fire TikTok Purchase event with proper value + currency
       if (window.ttq) {
-        window.ttq.track("CompletePayment", {
-          value: price,
+        window.ttq.track("Purchase", {
+          value: 17.0,
           currency: "USD",
         });
       }
