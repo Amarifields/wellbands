@@ -16,8 +16,23 @@ export const AuthContext = createContext({
   loading: true,
 });
 
-// STORAGE FIX: Create a storage wrapper with fallbacks for Safari's limits
-const createSecureStorage = () => {
+// PERFORMANCE: Create a high-performance token cache
+const TokenCache = (() => {
+  // Memory cache for instant access
+  let cachedToken = null;
+  let tokenExpiry = 0;
+
+  // Session storage often performs better than localStorage
+  const useSessionStorage = () => {
+    try {
+      return window.sessionStorage && window.sessionStorage.getItem;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const hasSessionStorage = useSessionStorage();
+
   // Check if localStorage is actually working (Safari may claim it exists but fail)
   const isStorageWorking = () => {
     try {
@@ -31,52 +46,184 @@ const createSecureStorage = () => {
     }
   };
 
-  const storageAvailable = isStorageWorking();
+  const localStorageAvailable = isStorageWorking();
 
   // Memory fallback when localStorage isn't available
   const memoryStorage = new Map();
 
+  // Last validation time to avoid repeated validation
+  let lastValidated = 0;
+
   return {
-    getItem: (key) => {
+    getToken: () => {
+      // Always prioritize memory cache for speed
+      if (cachedToken) {
+        // Quick check if it's still valid
+        if (Date.now() < tokenExpiry - 60000) {
+          // 1 minute buffer
+          return cachedToken;
+        }
+        // Token expired, clear it
+        cachedToken = null;
+      }
+
       try {
-        if (storageAvailable) {
-          return localStorage.getItem(key);
-        } else {
-          return memoryStorage.get(key) || null;
+        // Try session storage first (faster)
+        if (hasSessionStorage) {
+          const sessionToken = sessionStorage.getItem("token");
+          if (sessionToken) {
+            try {
+              const decoded = jwtDecode(sessionToken);
+              if (decoded.exp && Date.now() < decoded.exp * 1000) {
+                cachedToken = sessionToken;
+                tokenExpiry = decoded.exp * 1000;
+                return sessionToken;
+              } else {
+                // Token expired, remove it
+                sessionStorage.removeItem("token");
+              }
+            } catch (e) {
+              // Invalid token
+              sessionStorage.removeItem("token");
+            }
+          }
+        }
+
+        // Fall back to localStorage or memory
+        const token = localStorageAvailable
+          ? localStorage.getItem("token")
+          : memoryStorage.get("token");
+
+        if (token) {
+          try {
+            const decoded = jwtDecode(token);
+            if (decoded.exp && Date.now() < decoded.exp * 1000) {
+              cachedToken = token;
+              tokenExpiry = decoded.exp * 1000;
+
+              // Also cache in session storage for faster future access
+              if (hasSessionStorage) {
+                try {
+                  sessionStorage.setItem("token", token);
+                } catch (e) {
+                  /* Ignore errors */
+                }
+              }
+
+              return token;
+            } else {
+              // Token expired, remove it
+              if (localStorageAvailable) {
+                localStorage.removeItem("token");
+              } else {
+                memoryStorage.delete("token");
+              }
+            }
+          } catch (e) {
+            // Invalid token
+            if (localStorageAvailable) {
+              localStorage.removeItem("token");
+            } else {
+              memoryStorage.delete("token");
+            }
+          }
         }
       } catch (e) {
-        console.warn("Storage get failed, using memory fallback", e);
-        return memoryStorage.get(key) || null;
+        console.error("Error retrieving token:", e);
+      }
+
+      return null;
+    },
+
+    setToken: (token) => {
+      // Update memory immediately
+      cachedToken = token;
+
+      try {
+        // Parse expiration time
+        const decoded = jwtDecode(token);
+        tokenExpiry = decoded.exp * 1000; // Convert to milliseconds
+
+        // Use requestAnimationFrame for non-blocking updates to storage
+        requestAnimationFrame(() => {
+          try {
+            // Update session storage (faster than localStorage)
+            if (hasSessionStorage) {
+              sessionStorage.setItem("token", token);
+            }
+
+            // Update persistent storage in the background
+            setTimeout(() => {
+              if (localStorageAvailable) {
+                localStorage.setItem("token", token);
+              } else {
+                memoryStorage.set("token", token);
+              }
+            }, 0);
+          } catch (e) {
+            console.error("Error storing token:", e);
+            // Fallback to memory-only storage
+            memoryStorage.set("token", token);
+          }
+        });
+      } catch (e) {
+        console.error("Error setting token:", e);
       }
     },
-    setItem: (key, value) => {
+
+    removeToken: () => {
+      cachedToken = null;
+      tokenExpiry = 0;
+      lastValidated = 0;
+
       try {
-        if (storageAvailable) {
-          localStorage.setItem(key, value);
+        if (hasSessionStorage) {
+          sessionStorage.removeItem("token");
+        }
+
+        if (localStorageAvailable) {
+          localStorage.removeItem("token");
         } else {
-          memoryStorage.set(key, value);
+          memoryStorage.delete("token");
         }
       } catch (e) {
-        console.warn("Storage set failed, using memory fallback", e);
-        memoryStorage.set(key, value);
+        console.error("Error removing token:", e);
       }
     },
-    removeItem: (key) => {
+
+    // Fast validation that avoids repeated work
+    validateToken: (token) => {
+      if (!token) return false;
+
+      // Skip validation if we did it recently
+      const now = Date.now();
+      if (now - lastValidated < 60000) {
+        // Only validate once per minute
+        return true;
+      }
+
       try {
-        if (storageAvailable) {
-          localStorage.removeItem(key);
-        } else {
-          memoryStorage.delete(key);
+        const parts = token.split(".");
+        if (parts.length !== 3) return false;
+
+        // Simple decode without full verification
+        const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const payload = JSON.parse(atob(base64));
+
+        const isValid = payload.exp && Math.floor(now / 1000) < payload.exp;
+
+        if (isValid) {
+          lastValidated = now;
+          return true;
         }
+
+        return false;
       } catch (e) {
-        console.warn("Storage remove failed", e);
-        memoryStorage.delete(key);
+        return false;
       }
     },
   };
-};
-
-const secureStorage = createSecureStorage();
+})();
 
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
@@ -84,12 +231,44 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   // Track active session with ref to prevent race conditions
   const activeSessionRef = useRef(false);
+  const isInitializing = useRef(true);
+
+  // PERFORMANCE: Connect faster to Firebase API
+  useEffect(() => {
+    if (isInitializing.current) {
+      // Perform DNS prefetch for Firebase API to reduce connection time on login
+      const linkDNS = document.createElement("link");
+      linkDNS.rel = "dns-prefetch";
+      linkDNS.href = "https://identitytoolkit.googleapis.com";
+      document.head.appendChild(linkDNS);
+
+      // Also preconnect
+      const linkPreconnect = document.createElement("link");
+      linkPreconnect.rel = "preconnect";
+      linkPreconnect.href = "https://identitytoolkit.googleapis.com";
+      document.head.appendChild(linkPreconnect);
+
+      // Preconnect to backend
+      const apiHost =
+        window.location.hostname === "localhost"
+          ? "http://localhost:8000"
+          : "https://wellbands-backend.onrender.com";
+
+      const apiPreconnect = document.createElement("link");
+      apiPreconnect.rel = "preconnect";
+      apiPreconnect.href = apiHost;
+      document.head.appendChild(apiPreconnect);
+    }
+  }, []);
 
   useEffect(() => {
-    console.log("[AuthProvider] token is now:", token);
+    console.log(
+      "[AuthProvider] token is now:",
+      token ? "token exists" : "no token"
+    );
   }, [token]);
 
-  // ROBUST LOGIN: Improved login with better errors and storage
+  // OPTIMIZED LOGIN: Improved login with better errors and storage
   const login = useCallback((newToken) => {
     console.log("[AuthProvider] login with new token");
 
@@ -111,18 +290,8 @@ export const AuthProvider = ({ children }) => {
       setToken(newToken);
       activeSessionRef.current = true;
 
-      // Then persist to storage asynchronously
-      if (window.requestIdleCallback) {
-        // Use requestIdleCallback for modern browsers (smoother UI)
-        window.requestIdleCallback(() => {
-          secureStorage.setItem("token", newToken);
-        });
-      } else {
-        // Fallback to setTimeout for older browsers
-        setTimeout(() => {
-          secureStorage.setItem("token", newToken);
-        }, 0);
-      }
+      // Use the high-performance token cache
+      TokenCache.setToken(newToken);
 
       return true;
     } catch (err) {
@@ -139,87 +308,57 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     activeSessionRef.current = false;
 
-    // Then clear storage asynchronously
-    if (window.requestIdleCallback) {
-      window.requestIdleCallback(() => {
-        secureStorage.removeItem("token");
-      });
-    } else {
-      setTimeout(() => {
-        secureStorage.removeItem("token");
-      }, 0);
-    }
+    // Clear all token storage
+    TokenCache.removeToken();
 
     // Force navigation with replace to prevent back-button issues
     navigate("/login", { replace: true });
   }, [navigate]);
 
-  // TOKEN VALIDATION: Fix race conditions and add proper expiry checking
+  // OPTIMIZED TOKEN VALIDATION: Fix race conditions and add proper expiry checking
   useEffect(() => {
     let isMounted = true;
     console.log("[AuthProvider] Initial token validation started");
 
-    const validateToken = async () => {
+    const initializeAuth = async () => {
       try {
-        const stored = secureStorage.getItem("token");
-        console.log("[AuthProvider] Retrieved token from storage:", !!stored);
+        // Fast check from the cache
+        const cachedToken = TokenCache.getToken();
 
-        if (stored && isMounted) {
-          try {
-            // Parse token and check expiration
-            const decoded = jwtDecode(stored);
-
-            // Add a 60-second buffer to expire slightly early
-            // to prevent edge cases where token expires during use
-            const bufferTime = 60; // seconds
-            const isTokenValid =
-              decoded.exp &&
-              Math.floor(Date.now() / 1000) < decoded.exp - bufferTime;
-
-            if (isTokenValid) {
-              console.log("[AuthProvider] Valid token found");
-              setToken(stored);
-              activeSessionRef.current = true;
-            } else {
-              console.log("[AuthProvider] Expired token found");
-              secureStorage.removeItem("token");
-            }
-          } catch (error) {
-            console.error("[AuthProvider] Token validation error:", error);
-            secureStorage.removeItem("token");
-          }
-        }
-
-        // Always complete loading
-        if (isMounted) {
-          setLoading(false);
+        if (cachedToken && isMounted) {
+          console.log("[AuthProvider] Valid token found in cache");
+          setToken(cachedToken);
+          activeSessionRef.current = true;
         }
       } catch (error) {
         console.error("[AuthProvider] Error in token validation:", error);
+      } finally {
+        // Always complete loading
         if (isMounted) {
           setLoading(false);
+          isInitializing.current = false;
         }
       }
     };
 
-    // Set a maximum time for initial validation
+    // Run initialization
+    initializeAuth();
+
+    // Set a safety timeout to ensure we don't get stuck loading
     const loadingTimeout = setTimeout(() => {
       if (isMounted && loading) {
         console.warn("[AuthProvider] Loading timeout reached");
         setLoading(false);
+        isInitializing.current = false;
       }
-    }, 3000); // 3 seconds max loading time
-
-    // Validate with minimal delay
-    const validationTimeout = setTimeout(validateToken, 10);
+    }, 2000); // 2 second max loading time
 
     // Cleanup function
     return () => {
       isMounted = false;
-      clearTimeout(validationTimeout);
       clearTimeout(loadingTimeout);
     };
-  }, []);
+  }, [loading]);
 
   // IMPROVED STORAGE SYNC: Handle storage events from other tabs
   useEffect(() => {
@@ -247,28 +386,15 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check token validity every 5 minutes
     const refreshInterval = setInterval(() => {
-      if (activeSessionRef.current) {
-        const storedToken = secureStorage.getItem("token");
-        if (storedToken) {
-          try {
-            const decoded = jwtDecode(storedToken);
-            // Check if token expires in next 10 minutes
-            const tenMinutes = 10 * 60; // 10 minutes in seconds
-            const currentTime = Math.floor(Date.now() / 1000);
-
-            if (decoded.exp && currentTime > decoded.exp - tenMinutes) {
-              console.log(
-                "[AuthProvider] Token nearing expiration, logging out"
-              );
-              logout();
-            }
-          } catch (error) {
-            console.error("[AuthProvider] Token refresh error:", error);
+      if (activeSessionRef.current && token) {
+        try {
+          if (!TokenCache.validateToken(token)) {
+            console.log("[AuthProvider] Token expired during periodic check");
             logout();
           }
-        } else if (token) {
-          // Memory and storage are out of sync, prioritize memory
-          secureStorage.setItem("token", token);
+        } catch (error) {
+          console.error("[AuthProvider] Token refresh error:", error);
+          logout();
         }
       }
     }, 5 * 60 * 1000); // 5 minutes
@@ -276,7 +402,56 @@ export const AuthProvider = ({ children }) => {
     return () => clearInterval(refreshInterval);
   }, [token, logout]);
 
-  // IMPROVED LOADING: Better loading screen
+  // BACKGROUND TOKEN REFRESH: Proactively refresh tokens to prevent expiration
+  useEffect(() => {
+    let refreshTimer;
+
+    const scheduleRefresh = () => {
+      if (!token) return;
+
+      try {
+        // Quick decode
+        const parts = token.split(".");
+        const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const payload = JSON.parse(atob(base64));
+
+        if (payload.exp) {
+          // Calculate time until token expires
+          const expiresIn = payload.exp * 1000 - Date.now();
+
+          // If token expires in less than 30 minutes, schedule refresh
+          if (expiresIn < 30 * 60 * 1000 && expiresIn > 0) {
+            console.log(
+              `[AuthProvider] Token expires in ${Math.round(
+                expiresIn / 1000 / 60
+              )} minutes, scheduling refresh`
+            );
+
+            // Clear any existing timer
+            if (refreshTimer) clearTimeout(refreshTimer);
+
+            // Schedule refresh for 1 minute before expiration
+            const refreshTime = Math.max(expiresIn - 60000, 0);
+            refreshTimer = setTimeout(() => {
+              // For now just trigger a logout when close to expiry
+              console.log("[AuthProvider] Token nearing expiration");
+              logout();
+            }, refreshTime);
+          }
+        }
+      } catch (e) {
+        console.error("Error scheduling token refresh:", e);
+      }
+    };
+
+    scheduleRefresh();
+
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+    };
+  }, [token, logout]);
+
+  // IMPROVED LOADING SCREEN: Better visual feedback during loading
   if (loading) {
     return (
       <div
