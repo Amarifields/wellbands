@@ -22,6 +22,43 @@ const createAPI = () => {
     },
   });
 
+  // Add response interceptor to handle common errors
+  instance.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      const originalRequest = error.config;
+
+      // Prevent infinite retry loops
+      if (originalRequest._retry) {
+        return Promise.reject(error);
+      }
+
+      // Handle timeout errors
+      if (error.code === "ECONNABORTED" || error.message.includes("timeout")) {
+        console.warn("Request timeout, retrying...");
+
+        // Mark as retried and attempt again with longer timeout
+        originalRequest._retry = true;
+        originalRequest.timeout = 30000; // 30 seconds on retry
+
+        return instance(originalRequest);
+      }
+
+      // Handle network errors
+      if (error.message === "Network Error") {
+        console.warn("Network error, retrying...");
+
+        // Wait a moment before retrying
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+
+        originalRequest._retry = true;
+        return instance(originalRequest);
+      }
+
+      return Promise.reject(error);
+    }
+  );
+
   return instance;
 };
 
@@ -74,35 +111,94 @@ function LoginPage() {
     setIsLoading(true);
     setError("");
 
+    // Track login attempts
+    let attempts = 0;
+    const maxAttempts = 2;
+
+    const tryLogin = async () => {
+      attempts++;
+
+      try {
+        console.log(`Login attempt ${attempts} started`);
+
+        // Add a unique cache-busting parameter
+        const cacheBuster = `cb_${Date.now()}`;
+
+        // PERFORMANCE FIX: Use optimized API client with better timeout handling
+        const resp = await API.post(`/api/auth/login?${cacheBuster}`, {
+          email,
+          password,
+          rememberMe,
+        });
+
+        // PERFORMANCE FIX: Track API call time
+        const apiTime = performance.now() - loginStartTime;
+        console.log(`API login call took: ${apiTime}ms`);
+
+        // tell our AuthProvider about the new token
+        const loginSuccess = login(resp.data.token);
+
+        if (!loginSuccess) {
+          throw new Error("Failed to process login token");
+        }
+
+        // PERFORMANCE FIX: Small delay to ensure UI updates before navigation
+        const totalTime = performance.now() - loginStartTime;
+        console.log(`Total login process took: ${totalTime}ms`);
+
+        // now navigate into the portal
+        navigate("/reset", { replace: true });
+
+        return true;
+      } catch (err) {
+        console.error("Login error:", err);
+
+        // Get detailed error info
+        const status = err.response?.status;
+        const errMsg = err.response?.data?.message || err.message;
+
+        console.log(`Login failed with status ${status}: ${errMsg}`);
+
+        // Check if we should retry (only retry certain errors)
+        if (
+          attempts < maxAttempts &&
+          (!status || // Network errors have no status
+            status >= 500 || // Server errors
+            err.code === "ECONNABORTED" || // Timeouts
+            err.message.includes("timeout") ||
+            err.message === "Network Error")
+        ) {
+          console.log(
+            `Retrying login (attempt ${attempts + 1} of ${maxAttempts})...`
+          );
+
+          // Wait before retry (longer with each attempt)
+          const retryDelay = attempts * 1000;
+          await new Promise((resolve) => setTimeout(resolve, retryDelay));
+
+          // Recursive retry
+          return tryLogin();
+        }
+
+        // We've exhausted retries or hit an unrecoverable error
+        const msg =
+          status === 401
+            ? "Invalid email or password. Please try again."
+            : status === 429
+            ? "Too many login attempts. Please try again in a few minutes."
+            : status >= 500
+            ? "Server error. Please try again."
+            : err.code === "ECONNABORTED" || err.message.includes("timeout")
+            ? "Login request timed out. Please check your connection and try again."
+            : "Login error. Please try again.";
+
+        setError(msg);
+        return false;
+      }
+    };
+
     try {
-      // PERFORMANCE FIX: Use optimized API client with better timeout handling
-      const resp = await API.post("/api/auth/login", {
-        email,
-        password,
-        rememberMe,
-      });
-
-      // PERFORMANCE FIX: Track API call time
-      const apiTime = performance.now() - loginStartTime;
-      console.log(`API login call took: ${apiTime}ms`);
-
-      // tell our AuthProvider about the new token
-      login(resp.data.token);
-
-      // PERFORMANCE FIX: Small delay to ensure UI updates before navigation
-      // This prevents the "long wait" perception during transitions
-      const totalTime = performance.now() - loginStartTime;
-      console.log(`Total login process took: ${totalTime}ms`);
-
-      // now navigate into the portal
-      navigate("/reset", { replace: true });
-    } catch (err) {
-      console.error(err);
-      const msg =
-        err.response?.status === 401
-          ? "Invalid email or password. Please try again."
-          : "Login error. Please try again.";
-      setError(msg);
+      await tryLogin();
     } finally {
       setIsLoading(false);
     }
