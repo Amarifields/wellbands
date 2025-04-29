@@ -1,4 +1,4 @@
-// src/AuthProvider.js - FIXED VERSION
+// src/AuthProvider.js - ENHANCED VERSION
 import React, {
   createContext,
   useState,
@@ -8,15 +8,17 @@ import React, {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
+import axios from "axios";
 
 export const AuthContext = createContext({
   token: null,
   login: () => {},
   logout: () => {},
   loading: true,
+  validateBackend: () => {},
 });
 
-// PERFORMANCE: Create a high-performance token cache
+// PERFORMANCE: Create a high-performance token cache with cookies fallback
 const TokenCache = (() => {
   // Memory cache for instant access
   let cachedToken = null;
@@ -54,6 +56,29 @@ const TokenCache = (() => {
   // Last validation time to avoid repeated validation
   let lastValidated = 0;
 
+  // Cookie functions for maximum compatibility
+  const setCookie = (name, value, days = 30) => {
+    const date = new Date();
+    date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+    const expires = `expires=${date.toUTCString()}`;
+    document.cookie = `${name}=${value};${expires};path=/;SameSite=Strict`;
+  };
+
+  const getCookie = (name) => {
+    const nameEQ = `${name}=`;
+    const ca = document.cookie.split(";");
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === " ") c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+  };
+
+  const deleteCookie = (name) => {
+    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;`;
+  };
+
   return {
     getToken: () => {
       // Always prioritize memory cache for speed
@@ -68,7 +93,26 @@ const TokenCache = (() => {
       }
 
       try {
-        // Try session storage first (faster)
+        // Try cookie first (most compatible across browsers)
+        const cookieToken = getCookie("auth_token");
+        if (cookieToken) {
+          try {
+            const decoded = jwtDecode(cookieToken);
+            if (decoded.exp && Date.now() < decoded.exp * 1000) {
+              cachedToken = cookieToken;
+              tokenExpiry = decoded.exp * 1000;
+              return cookieToken;
+            } else {
+              // Token expired, remove it
+              deleteCookie("auth_token");
+            }
+          } catch (e) {
+            // Invalid token
+            deleteCookie("auth_token");
+          }
+        }
+
+        // Try session storage next (faster)
         if (hasSessionStorage) {
           const sessionToken = sessionStorage.getItem("token");
           if (sessionToken) {
@@ -101,7 +145,8 @@ const TokenCache = (() => {
               cachedToken = token;
               tokenExpiry = decoded.exp * 1000;
 
-              // Also cache in session storage for faster future access
+              // Also cache in cookie and session storage for maximum compatibility
+              setCookie("auth_token", token);
               if (hasSessionStorage) {
                 try {
                   sessionStorage.setItem("token", token);
@@ -135,7 +180,7 @@ const TokenCache = (() => {
       return null;
     },
 
-    setToken: (token) => {
+    setToken: (token, rememberMe = true) => {
       // Update memory immediately
       cachedToken = token;
 
@@ -143,6 +188,9 @@ const TokenCache = (() => {
         // Parse expiration time
         const decoded = jwtDecode(token);
         tokenExpiry = decoded.exp * 1000; // Convert to milliseconds
+
+        // Store in cookie for maximum compatibility (important for Safari)
+        setCookie("auth_token", token, rememberMe ? 30 : 1);
 
         // Use requestAnimationFrame for non-blocking updates to storage
         requestAnimationFrame(() => {
@@ -156,8 +204,11 @@ const TokenCache = (() => {
             setTimeout(() => {
               if (localStorageAvailable) {
                 localStorage.setItem("token", token);
+                // Also store the "remember me" preference
+                localStorage.setItem("remember_me", rememberMe.toString());
               } else {
                 memoryStorage.set("token", token);
+                memoryStorage.set("remember_me", rememberMe.toString());
               }
             }, 0);
           } catch (e) {
@@ -177,14 +228,19 @@ const TokenCache = (() => {
       lastValidated = 0;
 
       try {
+        // Clear cookie first
+        deleteCookie("auth_token");
+
         if (hasSessionStorage) {
           sessionStorage.removeItem("token");
         }
 
         if (localStorageAvailable) {
           localStorage.removeItem("token");
+          localStorage.removeItem("remember_me");
         } else {
           memoryStorage.delete("token");
+          memoryStorage.delete("remember_me");
         }
       } catch (e) {
         console.error("Error removing token:", e);
@@ -222,6 +278,22 @@ const TokenCache = (() => {
         return false;
       }
     },
+
+    // Get when token was last validated
+    getLastValidated: () => lastValidated,
+
+    // Check if "remember me" was enabled
+    isRemembered: () => {
+      try {
+        if (localStorageAvailable) {
+          return localStorage.getItem("remember_me") === "true";
+        } else {
+          return memoryStorage.get("remember_me") === "true";
+        }
+      } catch (e) {
+        return false;
+      }
+    },
   };
 })();
 
@@ -229,9 +301,17 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [backendStatus, setBackendStatus] = useState("unknown"); // "unknown", "online", "offline"
+
   // Track active session with ref to prevent race conditions
   const activeSessionRef = useRef(false);
   const isInitializing = useRef(true);
+
+  // Track API endpoints
+  const API_URL =
+    window.location.hostname === "localhost"
+      ? "http://localhost:8000"
+      : "https://wellbands-backend.onrender.com";
 
   // PERFORMANCE: Connect faster to Firebase API
   useEffect(() => {
@@ -249,15 +329,13 @@ export const AuthProvider = ({ children }) => {
       document.head.appendChild(linkPreconnect);
 
       // Preconnect to backend
-      const apiHost =
-        window.location.hostname === "localhost"
-          ? "http://localhost:8000"
-          : "https://wellbands-backend.onrender.com";
-
       const apiPreconnect = document.createElement("link");
       apiPreconnect.rel = "preconnect";
-      apiPreconnect.href = apiHost;
+      apiPreconnect.href = API_URL;
       document.head.appendChild(apiPreconnect);
+
+      // Initial backend health check
+      validateBackend();
     }
   }, []);
 
@@ -268,37 +346,68 @@ export const AuthProvider = ({ children }) => {
     );
   }, [token]);
 
-  // OPTIMIZED LOGIN: Improved login with better errors and storage
-  const login = useCallback((newToken) => {
-    console.log("[AuthProvider] login with new token");
+  // New function to validate backend health
+  const validateBackend = useCallback(async () => {
+    try {
+      // Try a lightweight HEAD request first
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-    // Validate token structure before setting
-    if (!newToken || typeof newToken !== "string" || newToken.trim() === "") {
-      console.error("[AuthProvider] Invalid token format received");
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: "HEAD",
+        signal: controller.signal,
+        mode: "no-cors",
+        cache: "no-store",
+      });
+
+      clearTimeout(timeoutId);
+
+      setBackendStatus("online");
+      return true;
+    } catch (error) {
+      console.warn("[AuthProvider] Backend validation failed:", error.message);
+      setBackendStatus("offline");
       return false;
     }
+  }, [API_URL]);
 
-    try {
-      // Quick validation of token format before storing
-      const parts = newToken.split(".");
-      if (parts.length !== 3) {
-        console.error("[AuthProvider] Invalid JWT format");
+  // OPTIMIZED LOGIN: Improved login with better errors and storage
+  const login = useCallback(
+    (newToken, refreshToken, expiresIn, rememberMe = true) => {
+      console.log("[AuthProvider] login with new token");
+
+      // Validate token structure before setting
+      if (!newToken || typeof newToken !== "string" || newToken.trim() === "") {
+        console.error("[AuthProvider] Invalid token format received");
         return false;
       }
 
-      // Set token in memory immediately for UI
-      setToken(newToken);
-      activeSessionRef.current = true;
+      try {
+        // Quick validation of token format before storing
+        const parts = newToken.split(".");
+        if (parts.length !== 3) {
+          console.error("[AuthProvider] Invalid JWT format");
+          return false;
+        }
 
-      // Use the high-performance token cache
-      TokenCache.setToken(newToken);
+        // Set token in memory immediately for UI
+        setToken(newToken);
+        activeSessionRef.current = true;
 
-      return true;
-    } catch (err) {
-      console.error("[AuthProvider] Error in login:", err);
-      return false;
-    }
-  }, []);
+        // Use the high-performance token cache
+        TokenCache.setToken(newToken, rememberMe);
+
+        // Update backend status
+        setBackendStatus("online");
+
+        return true;
+      } catch (err) {
+        console.error("[AuthProvider] Error in login:", err);
+        return false;
+      }
+    },
+    []
+  );
 
   // IMPROVED LOGOUT: More reliable logout with clear feedback
   const logout = useCallback(() => {
@@ -329,6 +438,13 @@ export const AuthProvider = ({ children }) => {
           console.log("[AuthProvider] Valid token found in cache");
           setToken(cachedToken);
           activeSessionRef.current = true;
+
+          // Check if backend is responsive
+          validateBackend().catch(() => {
+            console.warn(
+              "[AuthProvider] Backend health check failed during initialization"
+            );
+          });
         }
       } catch (error) {
         console.error("[AuthProvider] Error in token validation:", error);
@@ -358,7 +474,7 @@ export const AuthProvider = ({ children }) => {
       isMounted = false;
       clearTimeout(loadingTimeout);
     };
-  }, [loading]);
+  }, [loading, validateBackend]);
 
   // IMPROVED STORAGE SYNC: Handle storage events from other tabs
   useEffect(() => {
@@ -391,6 +507,13 @@ export const AuthProvider = ({ children }) => {
           if (!TokenCache.validateToken(token)) {
             console.log("[AuthProvider] Token expired during periodic check");
             logout();
+          } else {
+            // Periodically check backend health when user is logged in
+            validateBackend().catch(() => {
+              console.warn(
+                "[AuthProvider] Backend health check failed during refresh"
+              );
+            });
           }
         } catch (error) {
           console.error("[AuthProvider] Token refresh error:", error);
@@ -400,7 +523,7 @@ export const AuthProvider = ({ children }) => {
     }, 5 * 60 * 1000); // 5 minutes
 
     return () => clearInterval(refreshInterval);
-  }, [token, logout]);
+  }, [token, logout, validateBackend]);
 
   // BACKGROUND TOKEN REFRESH: Proactively refresh tokens to prevent expiration
   useEffect(() => {
@@ -472,7 +595,16 @@ export const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ token, login, logout, loading }}>
+    <AuthContext.Provider
+      value={{
+        token,
+        login,
+        logout,
+        loading,
+        backendStatus,
+        validateBackend,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -1,4 +1,5 @@
 import axios from "axios";
+import TokenManager from "./tokenManager";
 
 // PERFORMANCE: Create optimized Firebase API wrapper
 const firebaseClient = (() => {
@@ -33,9 +34,17 @@ const firebaseClient = (() => {
       async (error) => {
         // If token expired error, handle refresh logic here
         if (error.response?.status === 401) {
-          // Clear token and redirect to login in case of auth error
-          localStorage.removeItem("token");
-          window.location.href = "/login";
+          const newToken = await TokenManager.getToken();
+
+          if (newToken) {
+            // Retry the request with the new token
+            error.config.headers.Authorization = `Bearer ${newToken}`;
+            return axios(error.config);
+          } else {
+            // Clear token and redirect to login in case of auth error
+            TokenManager.clearTokens();
+            window.location.href = "/login";
+          }
         }
         return Promise.reject(error);
       }
@@ -70,24 +79,32 @@ const firebaseClient = (() => {
   return {
     login: async (email, password, rememberMe = false) => {
       try {
+        console.log(`Attempting login with rememberMe=${rememberMe}`);
         const response = await authAxios.post("/api/auth/login", {
           email,
           password,
           rememberMe,
         });
+
+        // Store tokens with the TokenManager
+        const { token, refreshToken, expiresIn } = response.data;
+        TokenManager.setTokens(token, refreshToken, expiresIn, rememberMe);
+
         return response.data;
       } catch (error) {
         throw error;
       }
     },
 
-    validateToken: async (token) => {
-      // First do a quick local check
-      if (!isTokenValid(token)) {
+    validateToken: async () => {
+      // Get token using TokenManager (it handles refresh if needed)
+      const token = await TokenManager.getToken();
+
+      if (!token) {
         return { valid: false };
       }
 
-      // Then verify with server
+      // Verify with server
       try {
         const response = await axios.get(`${API_URL}/api/auth/validate`, {
           headers: {
@@ -99,6 +116,10 @@ const firebaseClient = (() => {
       } catch (error) {
         return { valid: false };
       }
+    },
+
+    logout: () => {
+      TokenManager.clearTokens();
     },
 
     createApiClient,
