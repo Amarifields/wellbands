@@ -132,136 +132,55 @@ function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const loginStartTime = performance.now();
     setIsLoading(true);
     setError("");
-
-    // Give immediate feedback
     document.body.style.cursor = "progress";
 
-    // OPTIMIZATION: Pre-emptively set a timeout to provide feedback if login takes too long
+    // Show "waiting" message for slow logins
     const slowLoginTimeout = setTimeout(() => {
       if (isLoading) {
         setError("Login is taking longer than usual. Please wait...");
       }
-    }, 5000); // Show message after 5 seconds
+    }, 5000);
 
     try {
-      // OPTIMIZATION: Perform DNS prefetching again right before login
-      const backendUrl =
-        window.location.hostname === "localhost"
-          ? "http://localhost:8000"
-          : "https://wellbands-backend.onrender.com";
+      console.log(
+        `Attempting login for ${email} with rememberMe=${rememberMe}`
+      );
 
-      // Warm up connection
-      await fetch(`${backendUrl}/api/health`, {
-        method: "HEAD",
-        mode: "no-cors",
-        cache: "no-store",
-      }).catch(() => {
-        /* Ignore errors */
-      });
+      // Use a single login attempt with longer timeout
+      const result = await firebaseClient.login(email, password, rememberMe);
 
-      // Enhanced login with retries
-      let retries = 0;
-      const maxRetries = 2;
-      let lastError = null;
+      clearTimeout(slowLoginTimeout);
 
-      while (retries <= maxRetries) {
-        try {
-          // Try login with incrementally longer timeouts
-          const result = await firebaseClient.login(
-            email,
-            password,
-            rememberMe
-          );
+      if (result && result.token) {
+        const loginSuccess = login(
+          result.token,
+          result.refreshToken,
+          result.expiresIn,
+          rememberMe
+        );
 
-          // Success! Clear feedback timeout
-          clearTimeout(slowLoginTimeout);
-
-          // Track performance
-          const apiTime = performance.now() - loginStartTime;
-          console.log(
-            `Firebase login took: ${apiTime}ms after ${retries} retries`
-          );
-
-          // Process token
-          if (result && result.token) {
-            const loginSuccess = login(
-              result.token,
-              result.refreshToken,
-              result.expiresIn,
-              rememberMe
-            );
-
-            if (!loginSuccess) {
-              throw new Error("Failed to process login token");
-            }
-
-            // Reset UI state
-            setIsLoading(false);
-            document.body.style.cursor = "";
-
-            // Navigate immediately
-            navigate("/reset", { replace: true });
-            return; // Exit early on success
-          } else {
-            throw new Error("Invalid response from server");
-          }
-        } catch (err) {
-          lastError = err;
-
-          // Don't retry on credential errors
-          if (err.response?.status === 401) {
-            break;
-          }
-
-          // Only retry on timeout/network errors
-          if (
-            err.code === "TIMEOUT" ||
-            err.code === "ECONNABORTED" ||
-            err.message.includes("timeout") ||
-            err.message === "Network Error"
-          ) {
-            retries++;
-
-            if (retries <= maxRetries) {
-              console.log(`Login attempt ${retries} failed, retrying...`);
-              // Exponential backoff
-              await new Promise((r) => setTimeout(r, retries * 1000));
-              continue;
-            }
-          }
-
-          // If we get here, either we've exhausted retries or hit a non-retryable error
-          break;
+        if (!loginSuccess) {
+          throw new Error("Failed to process login token");
         }
-      }
 
-      // If we're here, we failed after all retries
-      throw lastError;
+        console.log("Login successful, navigating to /reset");
+        navigate("/reset", { replace: true });
+      } else {
+        throw new Error("Invalid response from server");
+      }
     } catch (err) {
       clearTimeout(slowLoginTimeout);
       console.error("Login error:", err);
 
-      const status = err.response?.status;
-      let errorMsg;
-
-      if (err.code === "TIMEOUT" || err.message.includes("timeout")) {
-        errorMsg =
-          "Login request timed out. The server is currently slow to respond. Please try again in a moment.";
-      } else if (status === 401) {
-        errorMsg = "Invalid email or password. Please try again.";
-      } else if (status === 429) {
-        errorMsg = "Too many login attempts. Please try again later.";
-      } else if (status === 500) {
-        errorMsg = "Server error. Please try again.";
-      } else if (err.message === "Network Error") {
-        errorMsg =
-          "Connection problem. Please check your internet and try again.";
-      } else {
-        errorMsg = "Login error. Please try again.";
-      }
+      // Simplified error handling
+      const errorMsg =
+        err.response?.status === 401
+          ? "Invalid email or password. Please try again."
+          : err.message.includes("timeout") || err.code === "ECONNABORTED"
+          ? "Login request timed out. Please try again."
+          : "Login error. Please try again.";
 
       setError(errorMsg);
     } finally {

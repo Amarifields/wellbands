@@ -37,16 +37,36 @@ const Storage = (() => {
   const memoryStorage = new Map();
 
   // Cookie functions for maximum compatibility
-  const setCookie = (name, value, days) => {
-    let expires = "";
-    if (days) {
+  const setCookie = (name, value, days = 30) => {
+    try {
       const date = new Date();
       date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
-      expires = `; expires=${date.toUTCString()}`;
+      const expires = `expires=${date.toUTCString()}`;
+
+      // Update cookie settings for maximum cross-browser compatibility
+      // Including domain and path helps with subdomain issues
+      const domain =
+        window.location.hostname === "localhost"
+          ? "localhost"
+          : `.${window.location.hostname}`;
+
+      // Set the cookie with precise options
+      document.cookie = `${name}=${value};${expires};path=/;SameSite=Lax;domain=${domain}`;
+
+      // Test if cookie was actually set
+      setTimeout(() => {
+        const testRead = getCookie(name);
+        if (!testRead) {
+          console.warn(
+            `Cookie ${name} could not be set. Falling back to localStorage.`
+          );
+        } else {
+          console.log(`Cookie ${name} successfully set.`);
+        }
+      }, 100);
+    } catch (e) {
+      console.error("Error setting cookie:", e);
     }
-    document.cookie = `${name}=${
-      value || ""
-    }${expires}; path=/; SameSite=Strict`;
   };
 
   const getCookie = (name) => {

@@ -349,21 +349,30 @@ export const AuthProvider = ({ children }) => {
   // New function to validate backend health
   const validateBackend = useCallback(async () => {
     try {
-      // Try a lightweight HEAD request first
+      // Use the health endpoint instead of login endpoint
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-      const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: "HEAD",
+      const response = await fetch(`${API_URL}/api/health`, {
+        method: "GET", // Use GET, not HEAD
         signal: controller.signal,
-        mode: "no-cors",
         cache: "no-store",
       });
 
       clearTimeout(timeoutId);
 
-      setBackendStatus("online");
-      return true;
+      if (response.ok) {
+        console.log("Backend health check successful");
+        setBackendStatus("online");
+        return true;
+      } else {
+        console.warn(
+          "Backend health check failed with status:",
+          response.status
+        );
+        setBackendStatus("offline");
+        return false;
+      }
     } catch (error) {
       console.warn("[AuthProvider] Backend validation failed:", error.message);
       setBackendStatus("offline");
@@ -374,7 +383,7 @@ export const AuthProvider = ({ children }) => {
   // OPTIMIZED LOGIN: Improved login with better errors and storage
   const login = useCallback(
     (newToken, refreshToken, expiresIn, rememberMe = true) => {
-      console.log("[AuthProvider] login with new token");
+      console.log("[AuthProvider] login called with rememberMe =", rememberMe);
 
       // Validate token structure before setting
       if (!newToken || typeof newToken !== "string" || newToken.trim() === "") {
@@ -394,8 +403,14 @@ export const AuthProvider = ({ children }) => {
         setToken(newToken);
         activeSessionRef.current = true;
 
-        // Use the high-performance token cache
-        TokenCache.setToken(newToken, rememberMe);
+        // Use the high-performance token cache - CRITICAL: pass rememberMe correctly
+        TokenCache.setToken(newToken, rememberMe === true);
+
+        // Log success
+        console.log(
+          "[AuthProvider] Login successful, token saved with rememberMe =",
+          rememberMe
+        );
 
         // Update backend status
         setBackendStatus("online");
@@ -431,20 +446,27 @@ export const AuthProvider = ({ children }) => {
 
     const initializeAuth = async () => {
       try {
-        // Fast check from the cache
+        console.log("[AuthProvider] Checking for existing token...");
+        // Fast check from the cache - includes cookies, which is critical for cross-browser support
         const cachedToken = TokenCache.getToken();
 
         if (cachedToken && isMounted) {
           console.log("[AuthProvider] Valid token found in cache");
+
+          // Set token in state - this is critical for route protection
           setToken(cachedToken);
           activeSessionRef.current = true;
 
-          // Check if backend is responsive
-          validateBackend().catch(() => {
-            console.warn(
-              "[AuthProvider] Backend health check failed during initialization"
-            );
-          });
+          // Verify token validity with server, but don't block UI
+          setTimeout(() => {
+            validateBackend().catch(() => {
+              console.warn(
+                "[AuthProvider] Backend health check failed, but continuing with cached token"
+              );
+            });
+          }, 0);
+        } else {
+          console.log("[AuthProvider] No valid token found");
         }
       } catch (error) {
         console.error("[AuthProvider] Error in token validation:", error);
@@ -457,7 +479,7 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    // Run initialization
+    // Run initialization immediately
     initializeAuth();
 
     // Set a safety timeout to ensure we don't get stuck loading
@@ -474,7 +496,7 @@ export const AuthProvider = ({ children }) => {
       isMounted = false;
       clearTimeout(loadingTimeout);
     };
-  }, [loading, validateBackend]);
+  }, []);
 
   // IMPROVED STORAGE SYNC: Handle storage events from other tabs
   useEffect(() => {
@@ -500,25 +522,41 @@ export const AuthProvider = ({ children }) => {
 
   // AUTOMATIC SESSION REFRESH: Add periodic token validation
   useEffect(() => {
+    // Set a flag to track if we're currently validating
+    let isValidating = false;
+
     // Check token validity every 5 minutes
     const refreshInterval = setInterval(() => {
-      if (activeSessionRef.current && token) {
-        try {
-          if (!TokenCache.validateToken(token)) {
-            console.log("[AuthProvider] Token expired during periodic check");
-            logout();
-          } else {
-            // Periodically check backend health when user is logged in
+      // Skip if we're already validating or don't have an active token
+      if (isValidating || !activeSessionRef.current || !token) {
+        return;
+      }
+
+      try {
+        isValidating = true;
+
+        // Only perform lightweight client-side validation
+        if (!TokenCache.validateToken(token)) {
+          console.log("[AuthProvider] Token expired during periodic check");
+          logout();
+        } else {
+          // Only check backend health occasionally (every 15 minutes)
+          const lastCheck = TokenCache.getLastValidated();
+          const checkInterval = 15 * 60 * 1000; // 15 minutes
+
+          if (Date.now() - lastCheck > checkInterval) {
+            // Perform backend check but don't block on result
             validateBackend().catch(() => {
               console.warn(
                 "[AuthProvider] Backend health check failed during refresh"
               );
             });
           }
-        } catch (error) {
-          console.error("[AuthProvider] Token refresh error:", error);
-          logout();
         }
+      } catch (error) {
+        console.error("[AuthProvider] Token refresh error:", error);
+      } finally {
+        isValidating = false;
       }
     }, 5 * 60 * 1000); // 5 minutes
 

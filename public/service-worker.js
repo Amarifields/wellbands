@@ -20,7 +20,15 @@ self.addEventListener("install", (event) => {
       .open(CACHE_NAME)
       .then((cache) => {
         console.log("[ServiceWorker] Pre-caching assets");
-        return cache.addAll(PRECACHE_ASSETS);
+        // Use individual cache operations that won't fail the entire process
+        return Promise.allSettled(
+          PRECACHE_ASSETS.map((asset) =>
+            cache.add(asset).catch((err) => {
+              console.warn(`[ServiceWorker] Failed to cache: ${asset}`, err);
+              return null; // Continue despite errors
+            })
+          )
+        );
       })
       .then(() => self.skipWaiting())
   );
