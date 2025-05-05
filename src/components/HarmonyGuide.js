@@ -590,15 +590,14 @@ const ResetPortal = () => {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="pt-28 pb-8 px-4 md:px-16 text-center">
+      <section className="pt-28 mt-8 pb-8 px-4 md:px-16 text-center">
         <div className="max-w-5xl mx-auto">
           {/* Limited time offer badge */}
-          <div className="mb-8 flex justify-center">
+          {/* <div className="mb-8 flex justify-center">
             <span className="inline-block bg-gradient-to-r from-cyan-500 to-blue-500 text-black font-semibold px-5 py-2 rounded-full text-sm transform hover:scale-105 transition-transform shadow-glow animate-pulse">
-              <FaClock className="inline-block mr-2" /> Limited Time Offer - 95%
-              OFF
+              <FaClock className="inline-block mr-2" /> Limited Time Offer
             </span>
-          </div>
+          </div> */}
 
           <h1 className="text-4xl md:text-6xl font-bold mb-6 gradient-text leading-tight">
             Stressed, Anxious, or Can't Sleep?
@@ -610,10 +609,10 @@ const ResetPortal = () => {
             <span className="text-cyan-400">without medication</span>.
           </p>
 
-          <p className="text-lg md:text-xl text-white mb-10 max-w-2xl mx-auto">
+          {/* <p className="text-lg md:text-xl text-white mb-10 max-w-2xl mx-auto">
             <strong>Just 5 minutes a day</strong> using the Wellbands Reset
             Portal can calm your nervous system and improve your life.
-          </p>
+          </p> */}
 
           {/* Video Section */}
           <div className="relative max-w-4xl mx-auto mb-8 shadow-glow rounded-xl overflow-hidden border border-cyan-900/30">
@@ -627,7 +626,7 @@ const ResetPortal = () => {
                     <FaPlay className="text-white text-3xl" />
                   </div>
                   <span className="mt-4 text-white text-lg font-medium">
-                    Watch How It Works (2 min)
+                    Click To Watch How It Works (1 min)
                   </span>
                 </div>
               )}
@@ -1281,13 +1280,13 @@ const ResetPortal = () => {
           </div>
 
           {/* Final reassurance */}
-          <div className="max-w-2xl mx-auto text-center">
+          {/* <div className="max-w-2xl mx-auto text-center">
             <p className="text-gray-400 text-sm">
               Your satisfaction is our priority. If you don't experience
               positive results within 30 days, simply email us for a full
               refund. No questions asked.
             </p>
-          </div>
+          </div> */}
         </div>
       </section>
 

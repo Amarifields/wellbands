@@ -1,15 +1,13 @@
 import React, { useEffect, useState, useRef, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import Navbar from "./Navbar/Navbar";
-import Footer from "./Footer/Footer";
-import FrequencyPlayer from "./FrequencyPlayer";
-import GeometryVisualizer from "./GeometryVisualizer";
-import BreathworkGuide from "./BreathworkGuide";
-import SessionTimer from "./SessionTimer";
-import NeuralCoherenceTrainer from "./NeuralCoherenceTrainer";
-import { FaUserCircle, FaSignOutAlt } from "react-icons/fa";
-import { AuthContext } from "../AuthProvider";
+import Navbar from "../Navbar/Navbar";
+import Footer from "../Footer/Footer";
+import FrequencyPlayer from "./newFrequency";
+import GeometryVisualizer from "./newGeometry";
+import BreathworkGuide from "../BreathworkGuide";
+import SessionTimer from "../SessionTimer";
+import { AuthContext } from "../../AuthProvider";
 
 const RelaxPortal = () => {
   const [isLoading, setIsLoading] = useState(true);

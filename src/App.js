@@ -10,6 +10,7 @@ import Careers from "./components/Career";
 import Dashboard from "./components/Dashboard";
 import Relax from "./components/RelaxPortal";
 import Guide from "./components/HarmonyGuide";
+import Test from "./components/test/newRelax";
 import PurchaseSuccessPage from "./components/PurchaseSuccessPage";
 import ScrollToTop from "./components/ScrollToTop";
 import { AuthContext } from "./AuthProvider";
@@ -133,6 +134,7 @@ function App() {
         <Route path="/connect" element={<Connect />} />
         <Route path="/career" element={<Careers />} />
         <Route path="/guide" element={<Guide />} />
+        <Route path="/test" element={<Test />} />
 
         {/* If you're already authenticated, skip straight to the portal */}
         <Route
