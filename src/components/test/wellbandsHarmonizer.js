@@ -390,6 +390,16 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
     },
   }));
 
+  // inside WellbandsHarmonizer, before any useEffect
+  const handleFullscreenChange = () => {
+    // the native API varies by browser
+    const fsElem =
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.msFullscreenElement;
+    setIsFullscreen(!!fsElem);
+  };
+
   // Smoothly ramp the gain to `target` over `duration` seconds.
   const fadeGain = (target, duration = 1) => {
     const ctx = audioContextRef.current;
@@ -425,6 +435,21 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
     }, duration * 1000 + 50);
   };
   // =========== INITIALIZATION EFFECTS ============
+
+  useEffect(() => {
+    let cleanupViz;
+    if (
+      isPlaying &&
+      activeTab === "sound" &&
+      showEffects &&
+      canvasRef.current
+    ) {
+      cleanupViz = startVisualizer();
+    }
+    return () => {
+      if (cleanupViz) cleanupViz();
+    };
+  }, [isPlaying, activeTab, showEffects, trackKey]);
 
   // Initialize from localStorage on component mount
   useEffect(() => {
@@ -495,56 +520,29 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
     visualIntensity,
   ]);
 
-  // Mobile viewport optimization
   useEffect(() => {
-    // Fix for mobile zooming and rendering issues
-    const fixMobileView = () => {
-      const isMobile =
-        window.innerWidth < 768 ||
-        /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (!containerRef.current) return;
 
-      if (isMobile) {
-        try {
-          // Force correct viewport scale
-          document
-            .querySelector('meta[name="viewport"]')
-            .setAttribute(
-              "content",
-              "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-            );
-
-          // Reset any potential zoom
-          document.documentElement.style.zoom = 1;
-
-          // Ensure container and canvas are properly sized
-          if (containerRef.current) {
-            containerRef.current.style.transform = "none";
-
-            const canvas =
-              containerRef.current.querySelector(".geometry-canvas");
-            if (canvas) {
-              canvas.style.width = "100%";
-              canvas.style.height = "100%";
-              canvas.style.transform = "none";
-            }
-          }
-        } catch (error) {
-          errorLogsRef.current.push({
-            time: new Date().toISOString(),
-            error: "Mobile view optimization error",
-            details: error.message,
-          });
-        }
-      }
+    // Handler to call our visualizer’s resize()
+    const handleResize = () => {
+      visualizerRef.current?.resize();
     };
 
-    fixMobileView();
-    window.addEventListener("orientationchange", fixMobileView);
-    window.addEventListener("resize", fixMobileView);
+    // Initial centering
+    handleResize();
+
+    // 1) listen to window resizes / orientation changes
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
+
+    // 2) *and* watch the container itself for ANY layout change
+    const ro = new ResizeObserver(handleResize);
+    ro.observe(containerRef.current);
 
     return () => {
-      window.removeEventListener("orientationchange", fixMobileView);
-      window.removeEventListener("resize", fixMobileView);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
+      ro.disconnect();
     };
   }, []);
 
@@ -565,49 +563,23 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
 
   // Initialize or recreate visualizer with new settings
   useEffect(() => {
-    try {
-      // Initialize visualizer when component mounts
-      visualizerRef.current = new EnhancedGeometryVisualizer(
-        containerRef.current,
-        activePattern,
-        setIsFullscreen,
-        speed,
-        isPlaying,
-        colorThemes[colorPreference],
-        visualIntensity,
-        useMotionEffects
-      );
-
-      // Handle fullscreen changes
-      const handleFullscreenChange = () => {
-        setIsFullscreen(document.fullscreenElement === containerRef.current);
-      };
-
-      document.addEventListener("fullscreenchange", handleFullscreenChange);
-
-      return () => {
-        document.removeEventListener(
-          "fullscreenchange",
-          handleFullscreenChange
-        );
-        visualizerRef.current?.destroy();
-      };
-    } catch (error) {
-      errorLogsRef.current.push({
-        time: new Date().toISOString(),
-        error: "Visualizer initialization error",
-        details: error.message,
-      });
-
-      console.error("Visualizer initialization failed:", error);
-    }
-  }, [
-    colorPreference,
-    visualIntensity,
-    useMotionEffects,
-    activePattern,
-    speed,
-  ]);
+    // only once, on mount
+    visualizerRef.current = new EnhancedGeometryVisualizer(
+      containerRef.current,
+      activePattern,
+      setIsFullscreen,
+      speed,
+      isPlaying,
+      colorThemes[colorPreference],
+      visualIntensity,
+      useMotionEffects
+    );
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      visualizerRef.current?.destroy();
+    };
+  }, []);
 
   // Update visualizer when pattern changes
   useEffect(() => {
@@ -855,10 +827,6 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
       ambientAudioRef.current.pause();
     }
 
-    // Start visualizer if canvas is ready
-    if (canvasRef.current && showEffects) {
-      startVisualizer();
-    }
     startTimeRef.current = ctx.currentTime;
 
     // Cleanup function
@@ -1188,8 +1156,18 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
       if (!isPlaying || !audioContextRef.current) {
         // Idle state visualization
         drawIdleState(width, height, trackColor, time);
-        animationRef.current = requestAnimationFrame(drawVisualizer);
-        return;
+        let rafId = null;
+        const loop = () => {
+          drawVisualizer();
+          rafId = requestAnimationFrame(loop);
+        };
+        rafId = requestAnimationFrame(loop);
+
+        // return a cleanup function
+        return () => {
+          cancelAnimationFrame(rafId);
+          window.removeEventListener("resize", resizeCanvas);
+        };
       }
 
       // Enhanced active state visualization
@@ -1644,7 +1622,7 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
   return (
     <div className="bg-gradient min-h-full glass-card rounded-xl overflow-hidden">
       {/* Main Header */}
-      <div className="p-4 md:p-5 flex justify-between items-center bg-gradient-to-r from-cyan-900/30 to-teal-900/30">
+      <div className="p-4 lg:p-5 flex justify-between items-center bg-gradient-to-r from-cyan-900/30 to-teal-900/30">
         <h2 className="text-xl font-semibold flex items-center">
           <i className="fas fa-brainwave mr-3 text-cyan-400"></i>
           Wellbands Harmonizer
@@ -1665,7 +1643,7 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
           </button>
 
           {/* Main tabs */}
-          <div className="hidden md:flex bg-black/20 rounded-lg p-1">
+          <div className="hidden lg:flex bg-black/20 rounded-lg p-1">
             <button
               onClick={() => setActiveTab("sound")}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
@@ -1790,21 +1768,15 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
         )}
       </AnimatePresence>
 
-      <div className="flex flex-col md:flex-row">
+      <div className="flex flex-col lg:flex-row">
         {/* Main content area with flexible layout */}
-        <div className="md:w-3/5 lg:w-2/3">
+        <div className="lg:w-3/5 xl:w-2/3">
           {/* Geometry visualizer */}
           <div className="relative overflow-hidden">
             {/* Canvas container */}
             <div
               ref={containerRef}
-              className="geometry-container relative w-full overflow-hidden bg-black/60"
-              style={{
-                position: "relative",
-                width: "100%",
-                paddingTop: "56.25%", // 16:9 aspect ratio
-                minHeight: "280px",
-              }}
+              className="geometry-container w-full aspect-video min-h-[280px] relative overflow-hidden bg-black/60"
             >
               {/* Overlay with instructions for new users */}
               {!isPlaying && (
@@ -1871,13 +1843,23 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
               )}
 
               {/* No-screen mode indicator */}
-              {noScreenMode && isPlaying && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-90 z-30">
+              {noScreenMode && (
+                <div
+                  className={`absolute inset-0 flex items-center justify-center ${
+                    isPlaying
+                      ? "bg-black bg-opacity-90"
+                      : "bg-black bg-opacity-30"
+                  } z-30`}
+                >
                   <div className="text-center">
                     <i className="fas fa-moon text-cyan-500/50 text-3xl mb-2"></i>
-                    <p className="text-cyan-500/50">Screen off mode active</p>
+                    <p className="text-cyan-500/50">
+                      Screen off mode {isPlaying ? "active" : "ready"}
+                    </p>
                     <p className="text-gray-500 text-sm mt-1">
-                      Touch screen to exit
+                      {isPlaying
+                        ? "Touch screen to exit"
+                        : "Start playback to activate"}
                     </p>
                   </div>
                 </div>
@@ -1948,7 +1930,7 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
           </div>
 
           {/* Desktop-only Visual Options Panel */}
-          <div className="hidden md:block bg-black/20 border-t border-gray-800/30 p-4">
+          <div className="hidden lg:block bg-black/20 border-t border-gray-800/30 p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-medium text-white flex items-center text-base">
                 <i className="fas fa-eye text-cyan-400 mr-2"></i>
@@ -2075,7 +2057,12 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
         </div>
 
         {/* Right sidebar for controls */}
-        <div className="md:w-2/5 lg:w-1/3 bg-black/20 border-t md:border-t-0 md:border-l border-gray-800/30">
+        <div
+          className="lg:w-1/3 
+               bg-black/20 
+               border-t lg:border-t-0 lg:border-l 
+               border-gray-800/30"
+        >
           {/* Frequency visualizer in sidebar */}
           {activeTab === "sound" && (
             <div className="p-4">
@@ -2195,55 +2182,57 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
 
               {/* Audio mode toggles */}
               <div className="flex justify-between items-center mb-4">
-                <label className="flex items-center cursor-pointer">
-                  <span className="text-sm text-gray-300 mr-2">
-                    {useBinauralMode ? "Binaural" : "Speaker"}
-                  </span>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={useBinauralMode}
-                      onChange={() => setUseBinauralMode(!useBinauralMode)}
-                      className="sr-only"
-                    />
-                    <div className="w-9 h-5 bg-gray-700 rounded-full shadow-inner"></div>
-                    <div
-                      className={`absolute left-0 top-0 w-5 h-5 bg-cyan-500 rounded-full transition-transform transform ${
-                        useBinauralMode ? "translate-x-4" : "translate-x-0"
-                      }`}
-                    ></div>
-                  </div>
-                  <i
-                    className={`fas fa-${
-                      useBinauralMode ? "headphones" : "volume-up"
-                    } text-cyan-400/80 ml-2 text-sm`}
-                  ></i>
-                </label>
+                {/* Binaural toggle with tooltip - always stuck in binaural mode */}
+                <div className="relative group">
+                  <label className="flex items-center cursor-not-allowed">
+                    <span className="text-sm text-gray-300 mr-2">Binaural</span>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={true}
+                        readOnly={true}
+                        disabled={true}
+                        className="sr-only"
+                      />
+                      <div className="w-9 h-5 bg-gray-700 rounded-full shadow-inner"></div>
+                      <div className="absolute left-0 top-0 w-5 h-5 bg-cyan-500 rounded-full transform translate-x-4"></div>
+                    </div>
+                    <i className="fas fa-headphones text-cyan-400/80 ml-2 text-sm"></i>
+                  </label>
 
-                <label className="flex items-center cursor-pointer">
-                  <span className="text-sm text-gray-300 mr-2">Ambient</span>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={useAmbientMode}
-                      onChange={() => setUseAmbientMode(!useAmbientMode)}
-                      className="sr-only"
-                    />
-                    <div className="w-9 h-5 bg-gray-700 rounded-full shadow-inner"></div>
-                    <div
-                      className={`absolute left-0 top-0 w-5 h-5 bg-cyan-500 rounded-full transition-transform transform ${
-                        useAmbientMode ? "translate-x-4" : "translate-x-0"
-                      }`}
-                    ></div>
+                  {/* Tooltip popup that appears on hover */}
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 -translate-y-2 hidden group-hover:block bg-black/80 backdrop-blur-sm text-cyan-400 text-xs rounded-md px-3 py-2 whitespace-nowrap z-50 shadow-lg border border-cyan-900/30">
+                    <div className="text-center">Speaker mode coming soon</div>
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-8 border-transparent border-t-black/80"></div>
                   </div>
-                  <i
-                    className={`fas fa-${
-                      useAmbientMode
-                        ? ambientSounds[selectedAmbient]?.icon || "music"
-                        : "music-slash"
-                    } text-cyan-400/80 ml-2 text-sm`}
-                  ></i>
-                </label>
+                </div>
+
+                {/* Ambient toggle with tooltip - locked in off position */}
+                <div className="relative group">
+                  <label className="flex items-center cursor-not-allowed">
+                    <span className="text-sm text-gray-300 mr-2">Ambient</span>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={false}
+                        readOnly={true}
+                        disabled={true}
+                        className="sr-only"
+                      />
+                      <div className="w-9 h-5 bg-gray-700 rounded-full shadow-inner"></div>
+                      <div className="absolute left-0 top-0 w-5 h-5 bg-cyan-500 rounded-full transform translate-x-0"></div>
+                    </div>
+                    <i className="fas fa-music-slash text-cyan-400/80 ml-2 text-sm"></i>
+                  </label>
+
+                  {/* Tooltip popup that appears on hover */}
+                  <div className="absolute bottom-full right-0 transform -translate-y-2 hidden group-hover:block bg-black/80 backdrop-blur-sm text-cyan-400 text-xs rounded-md px-3 py-2 whitespace-nowrap z-50 shadow-lg border border-cyan-900/30">
+                    <div className="text-center">
+                      Ambient sounds coming soon
+                    </div>
+                    <div className="absolute top-full right-8 transform border-8 border-transparent border-t-black/80"></div>
+                  </div>
+                </div>
               </div>
 
               {/* Track/frequency selection */}
@@ -2677,26 +2666,32 @@ const colorThemes = {
         }
 
         /* No-screen mode styles */
-        .screen-off-mode {
-          position: relative;
-        }
+       .screen-off-mode {
+  position: relative;
+}
 
-        .screen-off {
-          background: #000 !important;
-          color: #000 !important;
-        }
+/* Only apply full blackout to main content when playing */
+body.screen-off {
+  background: #000 !important;
+}
 
-        body.screen-off {
-          background: #000 !important;
-        }
+body.screen-off .glass-card {
+  background: #000 !important;
+}
 
-        body.screen-off * {
-          background: #000 !important;
-          color: #000 !important;
-          border-color: #000 !important;
-          box-shadow: none !important;
-        }
+body.screen-off .geometry-container:not(:has(.fa-moon)) {
+  background: #000 !important;
+  color: #000 !important;
+  border-color: #000 !important;
+  box-shadow: none !important;
+}
 
+/* Allow UI elements to remain visible */
+body.screen-off .fa-moon,
+body.screen-off .text-cyan-500\/50,
+body.screen-off .text-gray-500 {
+  color: inherit !important;
+}
         /* High-quality focus effect */
         .glass-card {
           background: rgba(16, 25, 40, 0.6);
@@ -2739,7 +2734,7 @@ const colorThemes = {
         }
 
         /* Visual improvements for mobile */
-        @media (max-width: 768px) {
+       @media (max-width: 1023px) {
           .glass-card {
             margin: 0;
             border-radius: 0;
@@ -2850,25 +2845,34 @@ class EnhancedGeometryVisualizer {
       // Get container dimensions
       const rect = this.container.getBoundingClientRect();
 
+      // Store the actual display dimensions
+      this.displayWidth = rect.width;
+      this.displayHeight = rect.height;
+
       // Adjust canvas size
       if (document.fullscreenElement === this.container) {
         this.canvas.width = window.innerWidth * dpr;
         this.canvas.height = window.innerHeight * dpr;
-
-        // ADD THESE LINES to ensure correct centering in fullscreen:
-        this.centerX = window.innerWidth / 2;
-        this.centerY = window.innerHeight / 2;
+        this.displayWidth = window.innerWidth;
+        this.displayHeight = window.innerHeight;
       } else {
         this.canvas.width = rect.width * dpr;
         this.canvas.height = rect.height * dpr;
-
-        // Ensure centering is correct in normal mode too
-        this.centerX = rect.width / 2;
-        this.centerY = rect.height / 2;
       }
 
-      // Scale factor based on screen size
-      this.scale = (Math.min(rect.width, rect.height) / 300) * this.intensity;
+      // Apply DPR scaling to context
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // Calculate center points based on display dimensions, not canvas dimensions
+      this.centerX = this.displayWidth / 2;
+      this.centerY = this.displayHeight / 2;
+
+      // Consistent scale calculation based on the minimum display dimension
+      this.scale =
+        (Math.min(this.displayWidth, this.displayHeight) / 300) *
+        this.intensity;
+
+      this.fixMobileRendering();
 
       // Redraw
       this.draw();
