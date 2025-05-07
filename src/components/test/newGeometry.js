@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import ReactGA from "react-ga4";
 
-const GeometryVisualizer = () => {
+const GeometryVisualizer = ({ initialPattern }) => {
   // Core state
-  const [activePattern, setActivePattern] = useState("flower");
+  const [activePattern, setActivePattern] = useState(
+    initialPattern || "flower"
+  );
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
   const [speed, setSpeed] = useState(1);
@@ -576,7 +578,12 @@ const GeometryVisualizer = () => {
         <div
           ref={containerRef}
           className="geometry-container relative w-full overflow-hidden bg-black/40"
-          style={{ aspectRatio: "16/9", minHeight: "280px" }}
+          style={{
+            position: "relative",
+            width: "100%",
+            paddingTop: "56.25%",
+            minHeight: "280px",
+          }}
         >
           {/* Overlay with instructions for new users */}
           {!isPlaying && (

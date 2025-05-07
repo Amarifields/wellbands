@@ -30,6 +30,8 @@ const RelaxPortal = () => {
   const frequencyPlayerRef = useRef(null);
   const neuroCohRef = useRef(null);
   const geometryRef = useRef(null);
+  const geometryWrapperRef = useRef(null);
+  const [isWrapperFullscreen, setIsWrapperFullscreen] = useState(false);
   const { token, logout } = useContext(AuthContext);
 
   // New state for wellness packages
@@ -50,7 +52,7 @@ const RelaxPortal = () => {
       breathPattern: "4-7-8 Relaxation",
       frequency: "Relaxation",
       geometry: "Flower of Life",
-      duration: 5, // minutes
+      duration: 5,
       audioOnly: {
         description:
           "Eyes-closed anxiety relief session focusing on the 4-7-8 breathing pattern with calming frequencies",
@@ -167,6 +169,16 @@ const RelaxPortal = () => {
       frequencyPlayerRef.current.stopAudio();
     }
   };
+
+  useEffect(() => {
+    const onFsChange = () => {
+      setIsWrapperFullscreen(
+        document.fullscreenElement === geometryWrapperRef.current
+      );
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
 
   // fetch user + portal data
   useEffect(() => {
@@ -427,10 +439,43 @@ const RelaxPortal = () => {
                       </span>
                     </div>
                     <div className="p-4">
-                      <GeometryVisualizer
-                        ref={geometryRef}
-                        initialPattern={selectedPackage.geometry}
-                      />
+                      <div
+                        ref={geometryWrapperRef} // ← make sure this is here
+                        className="geometry-container relative w-full overflow-hidden bg-black/40"
+                        style={{
+                          position: "relative",
+                          width: "100%",
+                          paddingTop: "56.25%", // 16:9
+                          minHeight: "280px",
+                        }}
+                      >
+                        <GeometryVisualizer
+                          ref={geometryRef}
+                          initialPattern={selectedPackage.geometry}
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          const el = geometryWrapperRef.current;
+                          if (!el) return;
+                          const req =
+                            el.requestFullscreen ||
+                            el.webkitRequestFullscreen ||
+                            el.msRequestFullscreen;
+                          const exit =
+                            document.exitFullscreen ||
+                            document.webkitExitFullscreen ||
+                            document.msExitFullscreen;
+                          if (!document.fullscreenElement) {
+                            req.call(el);
+                          } else {
+                            exit.call(document);
+                          }
+                        }}
+                        className="mt-2 px-4 py-2 bg-slate-700 text-white rounded"
+                      >
+                        {isWrapperFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                      </button>
                     </div>
                   </div>
 

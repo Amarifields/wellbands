@@ -3,21 +3,18 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../Navbar/Navbar";
 import Footer from "../Footer/Footer";
-import FrequencyPlayer from "./newFrequency";
-import GeometryVisualizer from "./newGeometry";
+import WellbandsHarmonizer from "./wellbandsHarmonizer";
 import BreathworkGuide from "../BreathworkGuide";
 import SessionTimer from "../SessionTimer";
 import { AuthContext } from "../../AuthProvider";
 
 const RelaxPortal = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const navigate = useNavigate();
   const userMenuRef = useRef(null);
-  const frequencyPlayerRef = useRef(null);
-  const neuroCohRef = useRef(null);
+  const wellbandsHarmonizerRef = useRef(null);
   const { token, logout } = useContext(AuthContext);
 
   // point this at your deployed backend
@@ -27,8 +24,8 @@ const RelaxPortal = () => {
       : "https://wellbands-backend.onrender.com";
 
   const handleTimerComplete = () => {
-    if (frequencyPlayerRef.current) {
-      frequencyPlayerRef.current.stopAudio();
+    if (wellbandsHarmonizerRef.current) {
+      wellbandsHarmonizerRef.current.stopAudio();
     }
   };
 
@@ -75,43 +72,37 @@ const RelaxPortal = () => {
 
       {/* Main Container */}
       <div className="bg-gradient min-h-screen">
-        {/* Header */}
-        <header className="w-full pt-32 pb-6">
-          <div className="container mx-auto px-4 section-header">
-            <div className="text-center">
-              <h1 className="section-title">
-                <span className="text-white mr-3">Wellbands</span>
-                <span className="gradient-text">Reset Portal</span>
-              </h1>
+        <div className="mx-auto px-4 w-full max-w-full md:max-w-7xl">
+          {/* Header */}
+          <header className="w-full pt-32 pb-6">
+            <div className="container mx-auto px-4 section-header">
+              <div className="text-center">
+                <h1 className="section-title">
+                  <span className="text-white mr-3">Wellbands</span>
+                  <span className="gradient-text">Reset Portal</span>
+                </h1>
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
 
-        {/* Main Content */}
-        <main className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Sacred Geometry Harmonizer Section */}
-            <GeometryVisualizer />
-
-            {/* Frequency Healing Section */}
-            <div className="glass-card p-6">
-              <h2 className="text-xl font-semibold mb-4 flex items-center">
-                <i className="fas fa-wave-square mr-2 text-cyan-400"></i>
-                Frequency Healing
-              </h2>
-              <FrequencyPlayer ref={frequencyPlayerRef} />
+          {/* Main Content */}
+          <main className="container mx-auto px-4 py-8 ">
+            {/* Main Combined Tool - Full Width */}
+            <div className=" mb-6 overflow-hidden">
+              <WellbandsHarmonizer ref={wellbandsHarmonizerRef} />
             </div>
 
-            {/* Guided Breathwork Section */}
-            <BreathworkGuide />
+            {/* Secondary Tools Row - 3 Column Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <BreathworkGuide />
 
-            {/* Session Timer Section */}
-            <SessionTimer onComplete={handleTimerComplete} />
-
-            {/* Neural Coherence Trainer Section */}
-            {/*  <NeuralCoherenceTrainer ref={neuroCohRef} /> */}
-          </div>
-        </main>
+              {/* Session Timer Section */}
+              <div className="glass-card">
+                <SessionTimer onComplete={handleTimerComplete} />
+              </div>
+            </div>
+          </main>
+        </div>
 
         {/* Footer */}
         <div className="pt-12">
@@ -121,8 +112,7 @@ const RelaxPortal = () => {
 
       {/* Inline Global Styles */}
       <style>{`
-
-      html, body {
+        html, body {
   width: 100%;
   margin: 0;
   padding: 0;
@@ -186,7 +176,7 @@ const RelaxPortal = () => {
         .bg-gradient {
           background: radial-gradient(circle at center, rgba(0, 184, 212, 0.2) 0%, rgba(0, 229, 255, 0.05) 40%, rgba(5, 11, 20, 1) 100%);
           background-size: 200% 200%;
-          animation: gradientAnimation 20s ease infinite;
+        
         }
         @keyframes gradientAnimation {
           0% { background-position: 0% 0%; }
@@ -399,6 +389,8 @@ const RelaxPortal = () => {
           background-clip: text;
           -webkit-text-fill-color: transparent;
         }
+
+      
           
      @media (max-width: 456px) {
   .section-title {
@@ -589,7 +581,7 @@ const RelaxPortal = () => {
             font-size: 36px; /* Slightly smaller on very small screens */
           }
         }
-          
+        }
       `}</style>
     </div>
   );
