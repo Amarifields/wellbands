@@ -88,7 +88,7 @@ const RelaxPortal = () => {
           {/* Main Content */}
           <main className="container mx-auto px-4 py-8 ">
             {/* Main Combined Tool - Full Width */}
-            <div className=" mb-6 overflow-hidden">
+            <div className="mb-6 overflow-hidden -mx-4 md:mx-0">
               <WellbandsHarmonizer ref={wellbandsHarmonizerRef} />
             </div>
 

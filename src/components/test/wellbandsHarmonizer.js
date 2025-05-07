@@ -1529,6 +1529,9 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
 
   // Handle fullscreen toggle
   const toggleFullscreen = () => {
+    // Don't allow fullscreen on mobile devices
+    if (isMobileDevice) return;
+
     const el = containerRef.current;
 
     // Try native Fullscreen API first
@@ -1825,8 +1828,12 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
                   </div>
 
                   <button
-                    onClick={toggleFullscreen}
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-white bg-cyan-800/30 hover:bg-cyan-800/50"
+                    onClick={!isMobileDevice ? toggleFullscreen : undefined}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-white ${
+                      !isMobileDevice
+                        ? "bg-cyan-800/30 hover:bg-cyan-800/50"
+                        : "bg-gray-800/30 opacity-60 cursor-not-allowed"
+                    }`}
                   >
                     <i className="fas fa-compress"></i>
                   </button>
@@ -1883,15 +1890,38 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
                 <i className={`fas fa-${isPlaying ? "stop" : "play"}`}></i>
               </button>
 
-              <button
-                onClick={toggleFullscreen}
-                className="bg-black/50 hover:bg-black/70 rounded-full w-10 h-10 flex items-center justify-center text-white backdrop-blur-sm"
-                title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-              >
-                <i
-                  className={`fas fa-${isFullscreen ? "compress" : "expand"}`}
-                ></i>
-              </button>
+              {/* Replace the fullscreen button with this version */}
+              <div className="relative group">
+                <button
+                  onClick={!isMobileDevice ? toggleFullscreen : undefined}
+                  className={`bg-black/50 ${
+                    !isMobileDevice
+                      ? "hover:bg-black/70"
+                      : "opacity-60 cursor-not-allowed"
+                  } rounded-full w-10 h-10 flex items-center justify-center text-white backdrop-blur-sm`}
+                  title={
+                    isMobileDevice
+                      ? "Fullscreen not available on mobile"
+                      : isFullscreen
+                      ? "Exit Fullscreen"
+                      : "Enter Fullscreen"
+                  }
+                >
+                  <i
+                    className={`fas fa-${isFullscreen ? "compress" : "expand"}`}
+                  ></i>
+                </button>
+
+                {/* Tooltip that appears only on mobile devices */}
+                {isMobileDevice && (
+                  <div className="absolute bottom-full right-0 transform -translate-y-2 hidden group-hover:block group-active:block touch-none bg-black/80 backdrop-blur-sm text-cyan-400 text-xs rounded-md px-3 py-2 whitespace-nowrap z-50 shadow-lg border border-cyan-900/30 min-w-[180px]">
+                    <div className="text-center">
+                      Fullscreen available on desktop only
+                    </div>
+                    <div className="absolute top-full right-4 transform border-8 border-transparent border-t-black/80"></div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
