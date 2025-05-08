@@ -6,6 +6,7 @@ import Footer from "../Footer/Footer";
 import WellbandsHarmonizer from "./wellbandsHarmonizer";
 import BreathworkGuide from "../BreathworkGuide";
 import SessionTimer from "../SessionTimer";
+import ThoughtReleaseJournal from "./thoughtReleaseJournal";
 import { AuthContext } from "../../AuthProvider";
 
 const RelaxPortal = () => {
@@ -89,17 +90,19 @@ const RelaxPortal = () => {
           <main className="container mx-auto px-4 py-8 ">
             {/* Main Combined Tool - Full Width */}
             <div className="mb-6 overflow-hidden -mx-4 md:mx-0">
-              <WellbandsHarmonizer ref={wellbandsHarmonizerRef} />
+              <WellbandsHarmonizer
+                ref={wellbandsHarmonizerRef}
+                defaultActiveTab={
+                  window.innerWidth < 768 ? "visual" : undefined
+                }
+              />
             </div>
 
             {/* Secondary Tools Row - 3 Column Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 -mx-4 md:mx-0">
               <BreathworkGuide />
 
-              {/* Session Timer Section */}
-              <div className="glass-card">
-                <SessionTimer onComplete={handleTimerComplete} />
-              </div>
+              <ThoughtReleaseJournal />
             </div>
           </main>
         </div>

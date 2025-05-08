@@ -9,7 +9,7 @@ import React, {
 import ReactGA from "react-ga4";
 import { motion, AnimatePresence } from "framer-motion";
 
-const WellbandsHarmonizer = forwardRef((props, ref) => {
+const WellbandsHarmonizer = React.forwardRef(({ defaultActiveTab }, ref) => {
   // =========== CORE STATE MANAGEMENT ============
   // Geometry state
   const [activePattern, setActivePattern] = useState("flower");
@@ -34,7 +34,7 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
   const [showBonusAudio, setShowBonusAudio] = useState(false);
 
   // UI and tabs state
-  const [activeTab, setActiveTab] = useState("sound");
+  const [activeTab, setActiveTab] = useState(defaultActiveTab || "sound");
   const [showEffects, setShowEffects] = useState(true);
   const [effectIntensity, setEffectIntensity] = useState(0.8);
   const [favoritePresets, setFavoritePresets] = useState([]);
@@ -373,6 +373,7 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
   };
 
   // =========== EXPOSE METHODS VIA REF ============
+
   useImperativeHandle(ref, () => ({
     stopAudio: () => {
       if (isPlaying) {
@@ -1786,7 +1787,7 @@ const WellbandsHarmonizer = forwardRef((props, ref) => {
                 <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10 backdrop-blur-sm">
                   <button
                     onClick={startAudio}
-                    className="bg-cyan-500/20 hover:bg-cyan-500/30 transition-all p-6 rounded-full text-white"
+                    className="bg-cyan-500/20 … p-6 rounded-full text-white"
                   >
                     <i className="fas fa-play text-2xl"></i>
                   </button>

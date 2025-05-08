@@ -134,7 +134,7 @@ function App() {
         <Route path="/connect" element={<Connect />} />
         <Route path="/career" element={<Careers />} />
         <Route path="/guide" element={<Guide />} />
-        <Route path="/test" element={<Test />} />
+        <Route path="/test" element={<Relax />} />
 
         {/* If you're already authenticated, skip straight to the portal */}
         <Route
@@ -151,7 +151,7 @@ function App() {
         />
         <Route
           path="/reset"
-          element={isAuth() ? <Relax /> : <Navigate to="/login" replace />}
+          element={isAuth() ? <Test /> : <Navigate to="/login" replace />}
         />
 
         {/* Catch-all routes */}
