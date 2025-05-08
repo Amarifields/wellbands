@@ -17,7 +17,7 @@ const WellbandsHarmonizer = React.forwardRef(({ defaultActiveTab }, ref) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [showGeometryInfo, setShowGeometryInfo] = useState(false);
-  const [selectedEffect, setSelectedEffect] = useState("focus");
+  const [selectedEffect, setSelectedEffect] = useState("calm");
   const [visualIntensity, setVisualIntensity] = useState(0.7);
   const [colorPreference, setColorPreference] = useState("default");
   const [useMotionEffects, setUseMotionEffects] = useState(true);
@@ -34,7 +34,11 @@ const WellbandsHarmonizer = React.forwardRef(({ defaultActiveTab }, ref) => {
   const [showBonusAudio, setShowBonusAudio] = useState(false);
 
   // UI and tabs state
-  const [activeTab, setActiveTab] = useState(defaultActiveTab || "sound");
+  const isTabletOrMobile = window.innerWidth < 1024; // you can tighten this breakpoint if you like
+  const [activeTab, setActiveTab] = useState(
+    // force “sound” on small screens, otherwise respect the prop (or default to sound)
+    isTabletOrMobile ? "sound" : defaultActiveTab || "sound"
+  );
   const [showEffects, setShowEffects] = useState(true);
   const [effectIntensity, setEffectIntensity] = useState(0.8);
   const [favoritePresets, setFavoritePresets] = useState([]);
@@ -80,8 +84,8 @@ const WellbandsHarmonizer = React.forwardRef(({ defaultActiveTab }, ref) => {
   // =========== CONSTANTS AND DATA ============
   // Mapping between mental effects and patterns
   const effectPatterns = {
-    focus: "sri-yantra",
     calm: "flower",
+    focus: "sri-yantra",
     meditate: "vesica",
     sleep: "flowersoft",
     creativity: "merkaba",
@@ -436,6 +440,50 @@ const WellbandsHarmonizer = React.forwardRef(({ defaultActiveTab }, ref) => {
     }, duration * 1000 + 50);
   };
   // =========== INITIALIZATION EFFECTS ============
+
+  // smooth‐fade volume over 200ms
+  useEffect(() => {
+    const ctx = audioContextRef.current;
+    const gain = gainNodeRef.current;
+    if (!ctx || !gain) return;
+    const now = ctx.currentTime;
+    gain.gain.cancelScheduledValues(now);
+    // start from whatever the current value is
+    gain.gain.setValueAtTime(gain.gain.value, now);
+    // RC-style target ramp: τ = 0.05 s
+    gain.gain.setTargetAtTime(volume, now, 0.05);
+  }, [volume]);
+
+  // smooth‐ramp oscillator frequencies over 200ms
+  useEffect(() => {
+    const ctx = audioContextRef.current;
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    if (useBinauralMode) {
+      const oscL = oscillatorsRef.current.left;
+      const oscR = oscillatorsRef.current.right;
+      if (oscL && oscR) {
+        const [newL, newR] = tracks[trackKey].freqs;
+        [
+          [oscL, newL],
+          [oscR, newR],
+        ].forEach(([osc, f]) => {
+          osc.frequency.cancelScheduledValues(now);
+          osc.frequency.setValueAtTime(osc.frequency.value, now);
+          osc.frequency.linearRampToValueAtTime(f, now + 0.05);
+        });
+      }
+    } else {
+      const mono = oscillatorsRef.current.mono;
+      if (mono) {
+        const f = tracks[trackKey].monoFreq;
+        mono.frequency.cancelScheduledValues(now);
+        mono.frequency.setValueAtTime(mono.frequency.value, now);
+        mono.frequency.linearRampToValueAtTime(f, now + 0.05);
+      }
+    }
+  }, [trackKey, useBinauralMode]);
 
   useEffect(() => {
     let cleanupViz;
@@ -851,11 +899,6 @@ const WellbandsHarmonizer = React.forwardRef(({ defaultActiveTab }, ref) => {
         mono?.stop(now + 0.2);
       }
 
-      // Stop visualizer animation
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-
       // Clean up event listeners and intervals
       navigator.mediaDevices?.removeEventListener(
         "devicechange",
@@ -865,8 +908,6 @@ const WellbandsHarmonizer = React.forwardRef(({ defaultActiveTab }, ref) => {
     };
   }, [
     isPlaying,
-    trackKey,
-    volume,
     useBinauralMode,
     useAmbientMode,
     selectedAmbient,
@@ -1778,10 +1819,18 @@ const WellbandsHarmonizer = React.forwardRef(({ defaultActiveTab }, ref) => {
           {/* Geometry visualizer */}
           <div className="relative overflow-hidden">
             {/* Canvas container */}
+
             <div
               ref={containerRef}
               className="geometry-container w-full aspect-video min-h-[280px] relative overflow-hidden bg-black/60"
             >
+              {/*        <div
+  ref={containerRef}
+  className="geometry-container
+             w-full
+             h-[60vh] sm:h-[70vh] md:h-[80vh] lg:h-[60vh] xl:h-[70vh]
+             relative overflow-hidden bg-black/60"
+></div> */}
               {/* Overlay with instructions for new users */}
               {!isPlaying && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10 backdrop-blur-sm">
@@ -2815,6 +2864,7 @@ class EnhancedGeometryVisualizer {
       this.canvas = document.createElement("canvas");
       this.canvas.className = "geometry-canvas absolute inset-0 w-full h-full";
       this.container.appendChild(this.canvas);
+      this.canvas.style.backgroundColor = "#000";
 
       this.ctx = this.canvas.getContext("2d");
       this.time = 0;
@@ -3031,6 +3081,8 @@ class EnhancedGeometryVisualizer {
   draw() {
     try {
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.fillStyle = "#000";
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
       // Draw ambient background effects first
       this.drawAmbientBackground();
