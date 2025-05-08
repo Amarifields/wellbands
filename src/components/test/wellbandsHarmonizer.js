@@ -441,6 +441,14 @@ const WellbandsHarmonizer = React.forwardRef(({ defaultActiveTab }, ref) => {
   };
   // =========== INITIALIZATION EFFECTS ============
 
+  useEffect(() => {
+    if (noScreenMode && isPlaying && trackKey === "deepSleep") {
+      document.body.classList.add("screen-off");
+    } else {
+      document.body.classList.remove("screen-off");
+    }
+  }, [noScreenMode, isPlaying, trackKey]);
+
   // smooth‐fade volume over 200ms
   useEffect(() => {
     const ctx = audioContextRef.current;
@@ -491,6 +499,7 @@ const WellbandsHarmonizer = React.forwardRef(({ defaultActiveTab }, ref) => {
       isPlaying &&
       activeTab === "sound" &&
       showEffects &&
+      !noScreenMode &&
       canvasRef.current
     ) {
       cleanupViz = startVisualizer();
@@ -498,7 +507,7 @@ const WellbandsHarmonizer = React.forwardRef(({ defaultActiveTab }, ref) => {
     return () => {
       if (cleanupViz) cleanupViz();
     };
-  }, [isPlaying, activeTab, showEffects, trackKey]);
+  }, [isPlaying, activeTab, showEffects, trackKey, noScreenMode]);
 
   // Initialize from localStorage on component mount
   useEffect(() => {
@@ -1117,11 +1126,6 @@ const WellbandsHarmonizer = React.forwardRef(({ defaultActiveTab }, ref) => {
     // instead of immediate play, fade up:
     fadeGain(volume, 0.5);
 
-    // Turn off screen if no-screen mode selected (for sleep)
-    if (noScreenMode && trackKey === "deepSleep") {
-      document.body.classList.add("screen-off");
-    }
-
     // Track analytics
     ReactGA.event({
       category: "Wellbands Harmonizer",
@@ -1151,9 +1155,6 @@ const WellbandsHarmonizer = React.forwardRef(({ defaultActiveTab }, ref) => {
       if (timerActive) {
         stopTimer();
       }
-
-      // Clean up no-screen mode
-      document.body.classList.remove("screen-off");
 
       // Track analytics
       ReactGA.event({
@@ -1831,17 +1832,6 @@ const WellbandsHarmonizer = React.forwardRef(({ defaultActiveTab }, ref) => {
              h-[60vh] sm:h-[70vh] md:h-[80vh] lg:h-[60vh] xl:h-[70vh]
              relative overflow-hidden bg-black/60"
 ></div> */}
-              {/* Overlay with instructions for new users */}
-              {!isPlaying && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10 backdrop-blur-sm">
-                  <button
-                    onClick={startAudio}
-                    className="bg-cyan-500/20 … p-6 rounded-full text-white"
-                  >
-                    <i className="fas fa-play text-2xl"></i>
-                  </button>
-                </div>
-              )}
 
               {/* Floating controls in fullscreen mode */}
               {isFullscreen && (
@@ -1901,13 +1891,7 @@ const WellbandsHarmonizer = React.forwardRef(({ defaultActiveTab }, ref) => {
 
               {/* No-screen mode indicator */}
               {noScreenMode && (
-                <div
-                  className={`absolute inset-0 flex items-center justify-center ${
-                    isPlaying
-                      ? "bg-black bg-opacity-90"
-                      : "bg-black bg-opacity-30"
-                  } z-30`}
-                >
+                <div className="absolute inset-0 flex items-center justify-center bg-black z-40">
                   <div className="text-center">
                     <i className="fas fa-moon text-cyan-500/50 text-3xl mb-2"></i>
                     <p className="text-cyan-500/50">
@@ -2214,14 +2198,14 @@ const WellbandsHarmonizer = React.forwardRef(({ defaultActiveTab }, ref) => {
               </AnimatePresence>
 
               {/* Frequency visualizer */}
-              <div
-                className={`relative rounded-lg overflow-hidden bg-black/30 mb-4 transition-opacity duration-300 ${
-                  noScreenMode && isPlaying ? "opacity-0" : "opacity-100"
-                }`}
-                style={{ height: "120px" }}
-              >
-                <canvas ref={canvasRef} className="w-full h-full" />
-              </div>
+              {!noScreenMode && (
+                <div
+                  className="relative rounded-lg overflow-hidden bg-black/30 mb-4"
+                  style={{ height: "120px" }}
+                >
+                  <canvas ref={canvasRef} className="w-full h-full" />
+                </div>
+              )}
 
               {/* Play button and volume */}
               <div className="space-y-3 mb-4">
@@ -2751,26 +2735,12 @@ const colorThemes = {
 }
 
 /* Only apply full blackout to main content when playing */
-body.screen-off {
+body.screen-off .geometry-container {
   background: #000 !important;
 }
-
-body.screen-off .glass-card {
-  background: #000 !important;
-}
-
-body.screen-off .geometry-container:not(:has(.fa-moon)) {
-  background: #000 !important;
-  color: #000 !important;
-  border-color: #000 !important;
-  box-shadow: none !important;
-}
-
-/* Allow UI elements to remain visible */
-body.screen-off .fa-moon,
-body.screen-off .text-cyan-500\/50,
-body.screen-off .text-gray-500 {
-  color: inherit !important;
+body.screen-off .geometry-container canvas {
+  opacity: 0 !important;
+  pointer-events: none;
 }
         /* High-quality focus effect */
         .glass-card {
@@ -4173,22 +4143,17 @@ class EnhancedGeometryVisualizer {
   // Animation loop with timing controls
   animate(timestamp = 0) {
     try {
-      // Only update time if playing
-      if (this.isPlaying) {
-        // Calculate delta time for smooth animation regardless of frame rate
-        const deltaTime = timestamp - this.lastTimestamp;
-
-        // Update time value based on speed setting
-        this.time += (deltaTime / 1000) * 0.5 * this.speed;
+      // seed your timestamp on first frame
+      if (!this.lastTimestamp) {
+        this.lastTimestamp = timestamp;
       }
-
-      // Save timestamp for next frame
+      const deltaTime = timestamp - this.lastTimestamp;
       this.lastTimestamp = timestamp;
 
-      // Draw the current frame
-      this.draw();
+      // use the original 0.5 multiplier so it moves at the same rate as before
+      this.time += (deltaTime / 1000) * 0.5 * this.speed;
 
-      // Request next frame
+      this.draw();
       this.animationFrame = requestAnimationFrame(this.animate.bind(this));
     } catch (error) {
       this.errorLogs.push({
@@ -4196,7 +4161,6 @@ class EnhancedGeometryVisualizer {
         error: "Animation loop error",
         details: error.message,
       });
-
       console.error("Animation error:", error);
 
       // Try to recover by requesting another frame
