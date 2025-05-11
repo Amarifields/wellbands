@@ -12,6 +12,7 @@ import axios from "axios";
 
 export const AuthContext = createContext({
   token: null,
+  plan: "basic",
   login: () => {},
   logout: () => {},
   loading: true,
@@ -300,6 +301,7 @@ const TokenCache = (() => {
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
   const [token, setToken] = useState(null);
+  const [plan, setPlan] = useState("basic");
   const [loading, setLoading] = useState(true);
   const [backendStatus, setBackendStatus] = useState("unknown"); // "unknown", "online", "offline"
 
@@ -406,6 +408,21 @@ export const AuthProvider = ({ children }) => {
         // Use the high-performance token cache - CRITICAL: pass rememberMe correctly
         TokenCache.setToken(newToken, rememberMe === true);
 
+        // now fetch & set their plan
+        fetch(`${API_URL}/api/auth/validate`, {
+          headers: { Authorization: `Bearer ${newToken}` },
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.valid) {
+              console.log("Setting user plan from token:", data.plan);
+              setPlan(data.plan || "basic");
+            }
+          })
+          .catch(() => {
+            /*ignore*/
+          });
+
         // Log success
         console.log(
           "[AuthProvider] Login successful, token saved with rememberMe =",
@@ -456,6 +473,18 @@ export const AuthProvider = ({ children }) => {
           // Set token in state - this is critical for route protection
           setToken(cachedToken);
           activeSessionRef.current = true;
+
+          // fetch their plan
+          fetch(`${API_URL}/api/auth/validate`, {
+            headers: { Authorization: `Bearer ${cachedToken}` },
+          })
+            .then((r) => r.json())
+            .then((data) => {
+              if (data.valid) setPlan(data.plan || "basic");
+            })
+            .catch(() => {
+              /* ignore */
+            });
 
           // Verify token validity with server, but don't block UI
           setTimeout(() => {
@@ -636,6 +665,7 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         token,
+        plan,
         login,
         logout,
         loading,

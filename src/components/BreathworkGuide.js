@@ -98,6 +98,25 @@ const BreathworkGuide = () => {
   const autoPlayAttemptsRef = useRef(0);
   const initializedRef = useRef(false);
 
+  const unlockAudioContext = async () => {
+    const ctx = audioRef.current;
+    if (!ctx) return;
+    // 1) resume if still suspended
+    if (ctx.state === "suspended") {
+      try {
+        await ctx.resume();
+      } catch (e) {
+        console.warn("AudioContext resume failed:", e);
+      }
+    }
+    // 2) play a single-sample silent buffer to unlock the device speaker
+    const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(ctx.destination);
+    src.start(0);
+  };
+
   // Update refs when state changes
   useEffect(() => {
     activeRef.current = active;
@@ -150,15 +169,13 @@ const BreathworkGuide = () => {
   // Play audio tone for phase transitions
   const playTone = async (frequency, duration = 0.2, volume = 0.2) => {
     const ctx = audioRef.current;
-    if (!ctx) {
+    if (!ctx) return;
+    // make sure it's unlocked
+    if (ctx.state === "suspended") {
       try {
-        audioRef.current = new (window.AudioContext ||
-          window.webkitAudioContext)();
-        playTone(frequency, duration, volume); // Retry with new context
-        return;
+        await ctx.resume();
       } catch (e) {
-        console.warn("Cannot create AudioContext:", e);
-        return;
+        console.warn("AudioContext resume failed in playTone:", e);
       }
     }
 
@@ -293,9 +310,12 @@ const BreathworkGuide = () => {
   };
 
   // Start the breathing session
-  const start = () => {
+  const start = async () => {
     if (active) return;
+    // 🔑 first thing: unlock on mobile/tablet
+    await unlockAudioContext();
 
+    // your existing initializeAudio() can stay or be dropped now
     initializeAudio();
 
     // 🔑 unlock WebAudio on first tap

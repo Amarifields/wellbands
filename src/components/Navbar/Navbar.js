@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FaBars, FaTimes, FaUserCircle, FaSignOutAlt } from "react-icons/fa";
 import { AuthContext } from "../../AuthProvider";
 import logo from "../../assets/logo.png";
@@ -9,15 +9,35 @@ const Navbar = ({ whiteBg = false }) => {
   const [scrolled, setScrolled] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const { token, logout } = useContext(AuthContext);
-  const userMenuRef = useRef(null);
+  const userMenuDesktopRef = useRef(null);
+  const userMenuMobileRef = useRef(null);
 
   // handle scroll → background
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      // if click is inside *either* desktop *or* mobile menu, do nothing
+      if (
+        (userMenuDesktopRef.current &&
+          userMenuDesktopRef.current.contains(e.target)) ||
+        (userMenuMobileRef.current &&
+          userMenuMobileRef.current.contains(e.target))
+      )
+        return;
+      setShowUserMenu(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // lock body when mobile menu open
@@ -30,7 +50,7 @@ const Navbar = ({ whiteBg = false }) => {
     { name: "About", path: "/about" },
     { name: "Guide", path: "/guide" },
     { name: "Reset", path: "/reset" },
-    { name: "Connect", path: "/connect" },
+    { name: "Contact", path: "/connect" },
     { name: "Careers", path: "/career" },
   ];
 
@@ -67,26 +87,51 @@ const Navbar = ({ whiteBg = false }) => {
                 </li>
               ))}
 
-              {/* Join Waitlist CTA */}
-              <li className="navbar-nav-item navbar-cta">
-                <Link to="/waitlist" className="navbar-button">
-                  Join Waitlist
-                </Link>
-              </li>
+              {/* Join Waitlist CTA - Only show if user is not logged in */}
+              {!token && (
+                <li className="navbar-nav-item navbar-cta">
+                  <Link to="/waitlist" className="navbar-button">
+                    Join Waitlist
+                  </Link>
+                </li>
+              )}
 
-              {/* Desktop-only user menu */}
-              {token && location.pathname === "/reset" && (
+              {/* Desktop-only user menu - Show on all pages when logged in */}
+              {token && (
                 <li className="navbar-nav-item relative">
-                  <div ref={userMenuRef}>
+                  {" "}
+                  <div ref={userMenuDesktopRef}>
                     <button
                       className="user-profile-button"
                       onClick={() => setShowUserMenu((v) => !v)}
                     >
-                      <FaUserCircle className="user-icon" />
+                      <FaUserCircle
+                        className={`user-icon ${
+                          whiteBg ? "text-gray-800" : "text-white"
+                        }`}
+                      />
                     </button>
                     {showUserMenu && (
                       <div className="user-dropdown">
-                        <button className="logout-button" onClick={logout}>
+                        {/* Reset Portal Link */}
+                        <button
+                          className="dropdown-link"
+                          onClick={() => {
+                            setShowUserMenu(false);
+                            navigate("/reset");
+                          }}
+                        >
+                          Reset Portal
+                        </button>
+                        {/* Logout Button - Keep it exactly like before */}
+                        <button
+                          className="logout-button"
+                          onClick={() => {
+                            logout();
+                            setShowUserMenu(false);
+                            navigate("/");
+                          }}
+                        >
                           <FaSignOutAlt className="logout-icon" /> Log Out
                         </button>
                       </div>
@@ -99,18 +144,36 @@ const Navbar = ({ whiteBg = false }) => {
 
           {/* Mobile/Tablet: logout + hamburger together */}
           <div className="mobile-toggle-wrapper">
-            {token && location.pathname === "/reset" && (
-              <div className="relative mr-2" ref={userMenuRef}>
+            {token && (
+              <div className="relative mr-2" ref={userMenuMobileRef}>
                 <button
-                  className="p-2 text-white"
+                  className={`p-2 ${whiteBg ? "text-gray-800" : "text-white"}`}
                   onClick={() => setShowUserMenu((v) => !v)}
                   aria-label="User menu"
                 >
                   <FaUserCircle size={24} />
                 </button>
                 {showUserMenu && (
-                  <div className="user-dropdown">
-                    <button className="logout-button" onClick={logout}>
+                  <div className="user-dropdown mobile-dropdown">
+                    {/* Reset Portal Link */}
+                    <button
+                      className="dropdown-link"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        navigate("/reset");
+                      }}
+                    >
+                      Reset Portal
+                    </button>
+                    {/* Logout Button - Keep it exactly like before */}
+                    <button
+                      className="logout-button"
+                      onClick={() => {
+                        logout();
+                        setShowUserMenu(false);
+                        navigate("/");
+                      }}
+                    >
                       <FaSignOutAlt className="logout-icon" /> Log Out
                     </button>
                   </div>
@@ -147,15 +210,19 @@ const Navbar = ({ whiteBg = false }) => {
                 </Link>
               </li>
             ))}
-            <li className="mobile-menu-item">
-              <Link
-                to="/waitlist"
-                className="mobile-menu-button"
-                onClick={() => setMenuOpen(false)}
-              >
-                Join Waitlist
-              </Link>
-            </li>
+
+            {/* Only show Join Waitlist in mobile menu if not logged in */}
+            {!token && (
+              <li className="mobile-menu-item">
+                <Link
+                  to="/waitlist"
+                  className="mobile-menu-button"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Join Waitlist
+                </Link>
+              </li>
+            )}
           </ul>
         </div>
       </div>
@@ -256,6 +323,87 @@ const Navbar = ({ whiteBg = false }) => {
         .navbar-button:hover {
           transform: translateY(-2px);
           box-shadow: 0 6px 15px rgba(0, 184, 212, 0.4);
+        }
+
+        /* User dropdown menu styling */
+        .user-profile-button {
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: 24px;
+          padding: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: inherit;
+          transition: transform 0.2s;
+        }
+
+        .user-profile-button:hover {
+          transform: scale(1.1);
+        }
+
+        .user-icon {
+          font-size: 24px;
+          color: ${whiteBg ? "#1f2937" : "#fff"};
+        }
+
+        .user-dropdown {
+          position: absolute;
+          top: 100%;
+          right: 0;
+          background: #121212;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+          padding: 8px 0;
+          min-width: 180px;
+          z-index: 1000;
+          margin-top: 10px;
+        }
+
+        .mobile-dropdown {
+          right: -10px;
+        }
+
+        .dropdown-link {
+          display: flex;
+          align-items: center;
+          padding: 10px 16px;
+          width: 100%;
+          color: #fff;
+          font-size: 14px;
+          text-decoration: none;
+          transition: background-color 0.2s;
+        }
+
+        .dropdown-link:hover {
+          background-color: rgba(0, 229, 255, 0.1);
+          color: #00e5ff;
+        }
+
+        .logout-button {
+          display: flex;
+          align-items: center;
+          width: 100%;
+          background: none;
+          border: none;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          padding: 10px 16px;
+          color: #ff4d4f;
+          font-size: 14px;
+          cursor: pointer;
+          text-align: left;
+          margin-top: 5px;
+          transition: background-color 0.2s;
+        }
+
+        .logout-button:hover {
+          background-color: rgba(255, 77, 79, 0.1);
+        }
+
+        .logout-icon {
+          margin-right: 8px;
         }
 
         /* show desktop nav at ≥1024px */

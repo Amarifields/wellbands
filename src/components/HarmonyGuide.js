@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
+import axios from "axios";
 import Navbar from "./Navbar/Navbar";
 import Footer from "./Footer/Footer";
+import { AuthContext } from "../AuthProvider";
 import {
   FaBrain,
+  FaBook,
   FaHeartbeat,
   FaBed,
   FaBolt,
@@ -25,6 +28,22 @@ import {
   FaExclamationCircle,
   FaTag,
   FaMoneyBillWave,
+  FaCrown,
+  FaRocket,
+  FaUserSecret,
+  FaToolbox,
+  FaBell,
+  FaHistory,
+  FaCogs,
+  FaUserShield,
+  FaDownload,
+  FaInfinity,
+  FaTrophy,
+  FaGem,
+  FaRadiation,
+  FaMedal,
+  FaHandshake,
+  FaExchangeAlt,
 } from "react-icons/fa";
 
 const ResetPortal = () => {
@@ -38,6 +57,15 @@ const ResetPortal = () => {
   const [isBreathingActive, setIsBreathingActive] = useState(false);
   const [showLimitedFeatureModal, setShowLimitedFeatureModal] = useState(false);
   const [limitedFeatureMessage, setLimitedFeatureMessage] = useState("");
+  const [selectedPlan, setSelectedPlan] = useState("premium");
+  const [checkoutError, setCheckoutError] = useState("");
+  const { token, user } = useContext(AuthContext);
+
+  // Add these new state variables
+  const [userSubscriptionStatus, setUserSubscriptionStatus] = useState(null);
+  const [trialEndDate, setTrialEndDate] = useState(null);
+  const [hasPurchasedBasic, setHasPurchasedBasic] = useState(false);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
 
   const videoRef = useRef(null);
   const testimonialScrollRef = useRef(null);
@@ -47,6 +75,12 @@ const ResetPortal = () => {
   const audioContextRef = useRef(null);
   const oscillatorRef = useRef(null);
   const gainNodeRef = useRef(null);
+  const pricingSectionRef = useRef(null);
+
+  const API_URL =
+    window.location.hostname === "localhost"
+      ? "http://localhost:8000"
+      : "https://wellbands-backend.onrender.com";
 
   // Set up responsive layout
   useEffect(() => {
@@ -99,6 +133,75 @@ const ResetPortal = () => {
     };
   }, []);
 
+  const handleManageSubscription = async () => {
+    try {
+      const { data } = await axios.post(
+        `${API_URL}/api/create-portal-session`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      window.location.href = data.url;
+    } catch (err) {
+      console.error("Could not open billing portal", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!token) {
+      setIsLoadingSubscription(false);
+      return;
+    }
+    axios
+      .get(`${API_URL}/api/user/subscription-status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        setUserSubscriptionStatus(res.data.subscriptionStatus);
+        setHasPurchasedBasic(res.data.hasPurchasedBasic);
+        setTrialEndDate(res.data.trialEndDate);
+      })
+      .catch((_) => {
+        // ignore errors for now
+      })
+      .finally(() => {
+        setIsLoadingSubscription(false);
+      });
+  }, [token]);
+
+  useEffect(() => {
+    if (!isLoadingSubscription) {
+      if (hasPurchasedBasic) {
+        setSelectedPlan("basic");
+      } else if (
+        userSubscriptionStatus === "active" ||
+        userSubscriptionStatus === "trial"
+      ) {
+        setSelectedPlan("premium");
+      }
+    }
+  }, [isLoadingSubscription, hasPurchasedBasic, userSubscriptionStatus]);
+
+  const handlePurchase = async (plan) => {
+    setCheckoutError("");
+    try {
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const { data } = await axios.post(
+        `${API_URL}/api/create-checkout-session`,
+        { plan },
+        { headers }
+      );
+
+      window.location.href = data.url;
+    } catch (err) {
+      console.error("Checkout error:", err);
+      setCheckoutError(
+        err.response?.data?.error ||
+          "Something went wrong. Please try again in a moment."
+      );
+    }
+  };
+
   // Format countdown timer
   const formatTime = (seconds) => {
     const days = Math.floor(seconds / 86400);
@@ -121,6 +224,13 @@ const ResetPortal = () => {
     if (isVideoPlaying) videoRef.current.pause();
     else videoRef.current.play();
     setIsVideoPlaying((v) => !v);
+  };
+
+  // Scroll to pricing section
+  const scrollToPricing = () => {
+    if (pricingSectionRef.current) {
+      pricingSectionRef.current.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
   // Scroll testimonials
@@ -544,9 +654,15 @@ const ResetPortal = () => {
       icon: <FaPeace className="text-cyan-400 text-2xl" />,
     },
     {
-      title: "Geometric Visuals",
+      title: "Calming Visuals",
       description: "Visual patterns that help focus your mind",
       icon: <FaRegLightbulb className="text-cyan-400 text-2xl" />,
+    },
+    {
+      title: "Thought Release Journal",
+      description:
+        "Guided journaling to process emotions and quiet mental chatter",
+      icon: <FaBook className="text-cyan-400 text-2xl" />,
     },
   ];
 
@@ -575,47 +691,95 @@ const ResetPortal = () => {
     },
   ];
 
-  // Pricing benefits
-  const pricingBenefits = [
-    "Lifetime access to the Reset Portal",
-    "Unlimited use of all techniques",
-    "Regular updates with new features",
-    "Works on all devices - mobile, tablet, desktop",
-    "Use at home, work, or anywhere you need support",
-    "No monthly subscription fees",
+  // Basic plan benefits
+  const basicPlanBenefits = [
+    "Limited frequency tools",
+    "Standard breathing patterns",
+    "Basic calming visualizations",
+    "Standard sleep techniques",
+    "One-time payment, lifetime access",
+    "Works on all devices",
+  ];
+
+  // Premium plan benefits
+  const premiumPlanBenefits = [
+    "Access to declassified CIA frequencies",
+    "Advanced remote viewing techniques",
+    "Priority email support",
+    "New tools and updates monthly",
+    "Custom tool recommendations",
+    "Advanced sleep and focus protocols",
+    "Premium frequency library (17+ options)",
+    "Works on all devices",
+  ];
+
+  // Premium exclusive features
+  const premiumExclusiveFeatures = [
+    {
+      icon: <FaUserSecret className="text-purple-400 text-xl" />,
+      title: "CIA Declassified Frequencies",
+      description:
+        "Access the same frequencies used in remote viewing experiments",
+    },
+    {
+      icon: <FaToolbox className="text-purple-400 text-xl" />,
+      title: "Expanding Toolkit",
+      description: "New tools and techniques added monthly",
+    },
+    {
+      icon: <FaCrown className="text-purple-400 text-xl" />,
+      title: "Priority Support",
+      description: "Get answers and assistance faster than standard users",
+    },
+    {
+      icon: <FaRocket className="text-purple-400 text-xl" />,
+      title: "Custom Tool Development",
+      description: "We build new solutions based on subscriber feedback",
+    },
   ];
 
   return (
     <div className="harmony-page">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="pt-28 mt-8 pb-8 px-4 md:px-16 text-center">
+      {/* Hero Section with Value Proposition */}
+      <section className="pt-24 md:pt-28 pb-8 px-4 md:px-16 text-center">
         <div className="max-w-5xl mx-auto">
           {/* Limited time offer badge */}
-          {/* <div className="mb-8 flex justify-center">
+          <div className="mb-6 flex justify-center">
             <span className="inline-block bg-gradient-to-r from-cyan-500 to-blue-500 text-black font-semibold px-5 py-2 rounded-full text-sm transform hover:scale-105 transition-transform shadow-glow animate-pulse">
-              <FaClock className="inline-block mr-2" /> Limited Time Offer
+              <FaClock className="inline-block mr-2" /> Limited Time Offer -
+              Ends Soon
             </span>
-          </div> */}
+          </div>
 
           <h1 className="text-4xl md:text-6xl font-bold mb-6 gradient-text leading-tight">
             Stressed, Anxious, or Can't Sleep?
           </h1>
 
-          <p className="text-xl md:text-2xl text-gray-300 mb-6 max-w-3xl mx-auto">
-            Access ancient & modern techniques to naturally reduce stress, clear
-            mental fog, and sleep better{" "}
-            <span className="text-cyan-400">without medication</span>.
+          <p className="text-xl md:text-2xl text-gray-200 mb-6 max-w-3xl mx-auto">
+            Experience our tools that naturally reduce stress, improve focus,
+            and allows you to sleep better{" "}
+            <span className="text-cyan-400 font-semibold">
+              without medication
+            </span>
+            .
           </p>
 
-          {/* <p className="text-lg md:text-xl text-white mb-10 max-w-2xl mx-auto">
-            <strong>Just 5 minutes a day</strong> using the Wellbands Reset
-            Portal can calm your nervous system and improve your life.
-          </p> */}
+          <div className="flex flex-wrap justify-center gap-3 mb-8">
+            <span className="flex items-center bg-black/40 px-3 py-1 rounded-full text-cyan-300 text-sm border border-cyan-800/30">
+              <FaCheck className="mr-1 text-xs" /> Works in 5 minutes
+            </span>
+            <span className="flex items-center bg-black/40 px-3 py-1 rounded-full text-cyan-300 text-sm border border-cyan-800/30">
+              <FaCheck className="mr-1 text-xs" /> Science-backed
+            </span>
+            <span className="flex items-center bg-black/40 px-3 py-1 rounded-full text-cyan-300 text-sm border border-cyan-800/30">
+              <FaCheck className="mr-1 text-xs" /> No experience needed
+            </span>
+          </div>
 
           {/* Video Section */}
-          <div className="relative max-w-4xl mx-auto mb-8 shadow-glow rounded-xl overflow-hidden border border-cyan-900/30">
+          <div className="relative max-w-4xl mx-auto mb-10 shadow-glow rounded-xl overflow-hidden border border-cyan-900/30">
             <div
               className="aspect-w-16 aspect-h-9 cursor-pointer bg-gray-900"
               onClick={toggleVideo}
@@ -626,7 +790,7 @@ const ResetPortal = () => {
                     <FaPlay className="text-white text-3xl" />
                   </div>
                   <span className="mt-4 text-white text-lg font-medium">
-                    Click To Watch How It Works (1 min)
+                    Watch How Our Digital Tools Work (1 min)
                   </span>
                 </div>
               )}
@@ -639,7 +803,7 @@ const ResetPortal = () => {
                 controls={isVideoPlaying}
               >
                 <source
-                  src="https://res.cloudinary.com/dizuqswvl/video/upload/v1745372779/Wellbands_Reset_Portal_Tutorial_smasal.mp4"
+                  src="https://res.cloudinary.com/dizuqswvl/video/upload/v1746829119/Wellbands_Latest_Demo_vio5c4.mp4"
                   type="video/mp4"
                 />
                 Your browser does not support the video tag.
@@ -647,257 +811,52 @@ const ResetPortal = () => {
             </div>
           </div>
 
-          {/* Quick CTA after video */}
-          <div className="max-w-xl mx-auto mb-10">
-            <div className="flex justify-center items-center gap-5 mb-5">
-              <div className="text-gray-400 text-xl line-through">$348</div>
-              <div className="text-2xl font-bold text-white">
-                Only <span className="text-cyan-400">$17</span> Today
-              </div>
-            </div>
-
-            <a
-              href="https://buy.stripe.com/3csbMkcsJc2V4mY8wx"
-              className="btn-primary px-10 py-4 rounded-full text-lg inline-block pulse shadow-lg mb-2"
-            >
-              Get Instant Access <FaKey className="inline-block ml-2" />
-            </a>
-
-            <div className="flex flex-wrap justify-center gap-6 mt-4">
-              <div className="flex items-center text-sm text-gray-300">
-                <FaShieldAlt className="mr-2 text-cyan-400" /> Secure Checkout
-              </div>
-              <div className="flex items-center text-sm text-gray-300">
-                <FaLock className="mr-2 text-cyan-400" /> 30-Day Guarantee
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Try Now Demo Section - with preview of tools */}
-      <section className="py-12 px-4 md:px-16 bg-black">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-3 gradient-text">
-            Experience a Free Sample
-          </h2>
-          <p className="text-center text-cyan-300 mb-10 max-w-3xl mx-auto">
-            Try these limited demos to get a taste of what's available in the
-            full Reset Portal
-          </p>
-
-          <div className="grid md:grid-cols-3 gap-6 mb-12">
-            {/* Sacred Geometry Preview */}
-            <div className="bg-gradient-to-b from-gray-900 to-black border border-gray-800 rounded-xl overflow-hidden transition duration-300 hover:border-cyan-800/50 hover:shadow-glow">
-              <div className="p-4 flex justify-between items-center border-b border-gray-800">
-                <h3 className="text-xl font-semibold flex items-center">
-                  <FaRegLightbulb className="mr-3 text-cyan-400" />
-                  Sacred Geometry
+          {/* Quick buttons */}
+          <div className="mb-10 flex flex-col items-center">
+            <div className="bg-black/30 backdrop-blur-sm w-full max-w-2xl rounded-xl p-5 border border-cyan-800/30">
+              <div className="text-center mb-3">
+                <h3 className="text-xl font-bold text-white mb-1">
+                  Choose Your Access Level:
                 </h3>
-              </div>
-
-              <div
-                className="relative bg-black/70 flex items-center justify-center"
-                style={{ height: "260px" }}
-              >
-                <canvas
-                  ref={geometryCanvasRef}
-                  className="absolute inset-0 w-full h-full"
-                ></canvas>
-
-                <div className="absolute bottom-4 right-4 z-10">
-                  <div className="bg-black/70 backdrop-blur-sm py-2 px-4 rounded-full text-sm text-cyan-400">
-                    Preview Mode
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 text-center">
-                <p className="text-gray-300 text-sm mb-4">
-                  Sacred geometry patterns help focus your mind and reduce
-                  mental chatter
+                <p className="text-cyan-300 text-sm">
+                  Select between one-time payment or premium subscription
                 </p>
-                <a
-                  href="https://buy.stripe.com/3csbMkcsJc2V4mY8wx"
-                  className="inline-block text-cyan-400 hover:text-cyan-300 transition border border-cyan-800/50 hover:border-cyan-700 py-2 px-4 rounded-lg text-sm"
-                >
-                  Get Full Access <FaArrowRight className="inline-block ml-1" />
-                </a>
               </div>
-            </div>
-
-            {/* Frequency Healing Preview */}
-            <div className="bg-gradient-to-b from-gray-900 to-black border border-gray-800 rounded-xl overflow-hidden transition duration-300 hover:border-cyan-800/50 hover:shadow-glow">
-              <div className="p-4 flex justify-between items-center border-b border-gray-800">
-                <h3 className="text-xl font-semibold flex items-center">
-                  <FaHeadphones className="mr-3 text-cyan-400" />
-                  Frequency Healing
-                </h3>
-              </div>
-
-              <div className="p-6 flex flex-col items-center">
-                <div className="w-32 h-32 rounded-full bg-gradient-to-r from-cyan-900/30 to-cyan-800/30 border border-cyan-800/50 flex items-center justify-center mb-4">
-                  <div className="w-24 h-24 rounded-full bg-black flex items-center justify-center pulse-slow">
-                    <button
-                      onClick={showFrequencyLimited}
-                      className="w-16 h-16 rounded-full bg-gradient-to-r from-cyan-500 to-cyan-600 flex items-center justify-center shadow-lg hover:scale-105 transition"
-                    >
-                      <FaPlay className="text-black text-xl ml-1" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="w-full max-w-xs mb-4 space-y-2">
-                  <div className="text-center text-white mb-1">
-                    Deep Sleep Frequency
-                  </div>
-                  <div className="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-full"
-                      style={{ width: "30%" }}
-                    ></div>
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-400">
-                    <span>Demo</span>
-                    <span>Full Access</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 text-center">
-                <p className="text-gray-300 text-sm mb-4">
-                  Audio frequencies that harmonize your nervous system for deep
-                  relaxation
-                </p>
-                <a
-                  href="https://buy.stripe.com/3csbMkcsJc2V4mY8wx"
-                  className="inline-block text-cyan-400 hover:text-cyan-300 transition border border-cyan-800/50 hover:border-cyan-700 py-2 px-4 rounded-lg text-sm"
-                >
-                  Get Full Access <FaArrowRight className="inline-block ml-1" />
-                </a>
-              </div>
-            </div>
-
-            {/* Guided Breathwork Preview */}
-            <div className="bg-gradient-to-b from-gray-900 to-black border border-gray-800 rounded-xl overflow-hidden transition duration-300 hover:border-cyan-800/50 hover:shadow-glow">
-              <div className="p-4 flex justify-between items-center border-b border-gray-800">
-                <h3 className="text-xl font-semibold flex items-center">
-                  <FaPeace className="mr-3 text-cyan-400" />
-                  Guided Breathwork
-                </h3>
-              </div>
-
-              <div className="p-6 flex flex-col items-center">
-                <div
-                  className={`w-32 h-32 rounded-full bg-gradient-to-r from-cyan-900/30 to-cyan-800/30 border border-cyan-800/50 flex items-center justify-center mb-6 transition-all duration-1000 ${
-                    isBreathingActive
-                      ? breathingPhase === "inhale"
-                        ? "transform scale-125"
-                        : breathingPhase === "exhale"
-                        ? "transform scale-75"
-                        : ""
-                      : ""
-                  }`}
-                >
-                  <div className="text-cyan-400 text-lg font-medium">
-                    {isBreathingActive
-                      ? breathingPhase === "inhale"
-                        ? "Inhale"
-                        : breathingPhase === "hold"
-                        ? "Hold"
-                        : "Exhale"
-                      : "Try Me"}
-                  </div>
-                </div>
-
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
-                  onClick={
-                    isBreathingActive ? stopBreathingDemo : startBreathingDemo
-                  }
-                  className={`py-3 px-6 rounded-lg flex items-center justify-center transition-all font-medium ${
-                    isBreathingActive
-                      ? "bg-red-500/80 text-white"
-                      : "bg-gradient-to-r from-cyan-500/80 to-cyan-600/80 text-white"
-                  }`}
+                  onClick={scrollToPricing}
+                  className="flex-1 py-4 px-4 rounded-lg flex items-center justify-center transition-all bg-gradient-to-r from-cyan-600 to-cyan-700 text-white font-semibold hover:from-cyan-500 hover:to-cyan-600"
                 >
-                  <FaPlay
-                    className={`mr-2 ${isBreathingActive ? "hidden" : ""}`}
-                  />
-                  {isBreathingActive ? "Stop Demo" : "Start Demo"}
+                  <FaKey className="mr-2" />
+                  One-Time Access
+                  <div className="bg-cyan-900 text-cyan-100 text-xs px-2 py-0.5 rounded ml-2">
+                    $17
+                  </div>
+                </button>
+                <button
+                  onClick={scrollToPricing}
+                  className="flex-1 py-4 px-4 rounded-lg flex items-center justify-center transition-all bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold hover:from-purple-500 hover:to-purple-600 pulse"
+                >
+                  <FaCrown className="mr-2" />
+                  Start Free Trial
+                  <div className="flex items-center bg-purple-900 text-purple-100 text-xs px-2 py-0.5 rounded ml-2">
+                    7 days free
+                  </div>
                 </button>
               </div>
-
-              <div className="p-4 text-center">
-                <p className="text-gray-300 text-sm mb-4">
-                  Breathing patterns that activate your relaxation response in
-                  seconds
-                </p>
-                <a
-                  href="https://buy.stripe.com/3csbMkcsJc2V4mY8wx"
-                  className="inline-block text-cyan-400 hover:text-cyan-300 transition border border-cyan-800/50 hover:border-cyan-700 py-2 px-4 rounded-lg text-sm"
-                >
-                  Get Full Access <FaArrowRight className="inline-block ml-1" />
-                </a>
-              </div>
             </div>
-          </div>
-
-          {/* Demo limitations callout */}
-          <div className="bg-cyan-900/20 border border-cyan-800/30 rounded-lg p-6 text-center max-w-3xl mx-auto">
-            <div className="text-cyan-300 text-lg font-medium mb-2 flex items-center justify-center">
-              <FaExclamationCircle className="mr-2" /> These are limited demos
-            </div>
-            <p className="text-white">
-              The full Reset Portal includes premium frequencies, more breathing
-              patterns, additional visualizations, and precise timing calibrated
-              for optimal results.
-            </p>
-            <a
-              href="https://buy.stripe.com/3csbMkcsJc2V4mY8wx"
-              className="btn-primary px-8 py-3 rounded-full text-base inline-block mt-4"
-            >
-              Get Full Access Now <FaKey className="inline-block ml-1" />
-            </a>
           </div>
         </div>
       </section>
 
-      {/* Benefits Section */}
-      <section className="py-16 px-4 md:px-16 bg-gradient-to-b from-black to-gray-900">
+      {/* Testimonials Row - Immediately after hero for social proof */}
+      <section className="py-12 px-4 md:px-16 bg-gray-950">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-3 gradient-text">
-            What Will You Experience?
+            Real Results You Can't Get Anywhere Else
           </h2>
           <p className="text-center text-cyan-300 mb-10 max-w-3xl mx-auto">
-            These powerful techniques work together to transform how you feel
-            daily
-          </p>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            {benefits.map((benefit, index) => (
-              <div
-                key={index}
-                className="bg-gradient-to-b from-gray-900 to-black border border-gray-800 p-6 rounded-xl transition duration-300 hover:border-cyan-800/50 hover:shadow-glow text-center"
-              >
-                <div className="inline-flex justify-center items-center w-16 h-16 rounded-full bg-cyan-900/20 border border-cyan-900/40 mb-4">
-                  {benefit.icon}
-                </div>
-                <h3 className="text-xl font-bold mb-2">{benefit.title}</h3>
-                <p className="text-gray-400">{benefit.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Row */}
-      <section className="py-16 px-4 md:px-16 bg-black">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-3 gradient-text">
-            Real People, Real Results
-          </h2>
-          <p className="text-center text-cyan-300 mb-10 max-w-3xl mx-auto">
-            See how the Reset Portal has transformed lives
+            See how these powerful frequencies have transformed lives
           </p>
 
           <div className="relative">
@@ -1033,9 +992,335 @@ const ResetPortal = () => {
         </div>
       </section>
 
+      {/* Why It Works Section with CIA Frequencies Highlight */}
+      <section className="py-16 px-4 md:px-16 bg-black">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-12 text-center">
+            <h2 className="text-3xl font-bold mb-3 gradient-text">
+              Why These Techniques Work So Well
+            </h2>
+            <p className="text-center text-cyan-300 mb-6 max-w-3xl mx-auto">
+              The same methods used by elite performers, now available to you
+            </p>
+          </div>
+
+          {/* CIA Frequencies Feature Highlight */}
+          <div className="bg-gradient-to-r from-gray-900 to-black border border-gray-800 rounded-xl overflow-hidden mb-14">
+            <div className="grid md:grid-cols-2 items-center">
+              <div className="p-8 md:p-10 flex flex-col justify-center">
+                <div className="flex items-center mb-4">
+                  <div className="bg-purple-800/30 p-2 rounded-lg mr-4">
+                    <FaUserSecret className="text-purple-400 text-2xl" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white">
+                    Declassified CIA Frequencies
+                  </h3>
+                </div>
+                <p className="text-gray-300 mb-6">
+                  From 1978 to 1995, the CIA conducted the Stargate Project,
+                  using specific frequencies to enhance cognitive function and
+                  remote viewing abilities. These once-classified audio patterns
+                  are now available in our Premium plan.
+                </p>
+                <ul className="space-y-3 mb-6">
+                  <li className="flex items-start">
+                    <FaCheckCircle className="text-purple-400 mt-1 mr-3" />
+                    <span className="text-gray-200">
+                      Access the same frequencies used by government agencies
+                    </span>
+                  </li>
+                  <li className="flex items-start">
+                    <FaCheckCircle className="text-purple-400 mt-1 mr-3" />
+                    <span className="text-gray-200">
+                      Activate theta brainwaves for heightened awareness
+                    </span>
+                  </li>
+                  <li className="flex items-start">
+                    <FaCheckCircle className="text-purple-400 mt-1 mr-3" />
+                    <span className="text-gray-200">
+                      Enhance intuition and mental clarity within minutes
+                    </span>
+                  </li>
+                </ul>
+                <div className="flex items-center">
+                  <span className="text-purple-400 font-semibold">
+                    Premium Exclusive Feature
+                  </span>
+                  <FaCrown className="ml-2 text-purple-400" />
+                </div>
+              </div>
+              <div className="bg-gradient-to-r from-purple-900/20 via-purple-900/10 to-black h-full flex items-center justify-center p-8">
+                <div className="relative">
+                  <div className="w-64 h-64 rounded-full bg-gradient-to-r from-purple-900/30 to-purple-800/30 border border-purple-800/50 flex items-center justify-center pulse-slow">
+                    <div
+                      className="w-40 h-40 rounded-full bg-gradient-to-r from-purple-800/40 to-purple-700/40 border border-purple-700/50 flex items-center justify-center absolute pulse-slow"
+                      style={{ animationDelay: "0.5s" }}
+                    >
+                      <div
+                        className="w-24 h-24 rounded-full bg-gradient-to-r from-purple-700/50 to-purple-600/50 border border-purple-600/50 flex items-center justify-center absolute pulse-slow"
+                        style={{ animationDelay: "1s" }}
+                      >
+                        <div className="w-12 h-12 rounded-full bg-purple-500/60 flex items-center justify-center shadow-glow">
+                          <FaRadiation className="text-2xl text-white" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Try Now Demo Section - with preview of tools */}
+      <section className="py-12 px-4 md:px-16 bg-gray-950">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-3 gradient-text">
+            Experience a Free Sample
+          </h2>
+          <p className="text-center text-cyan-300 mb-10 max-w-3xl mx-auto">
+            Try these demos to get a taste of what's available in the full Reset
+            Portal
+          </p>
+
+          <div className="grid lg:grid-cols-3 gap-6 mb-12">
+            {/* Sacred Geometry Preview */}
+            <div className="bg-gradient-to-b from-gray-900 to-black border border-gray-800 rounded-xl overflow-hidden transition duration-300 hover:border-cyan-800/50 hover:shadow-glow">
+              <div className="p-4 flex justify-between items-center border-b border-gray-800">
+                <h3 className="text-xl font-semibold flex items-center">
+                  <FaRegLightbulb className="mr-3 text-cyan-400" />
+                  Sacred Geometry
+                </h3>
+              </div>
+
+              <div
+                className="relative bg-black/70 flex items-center justify-center"
+                style={{ height: "260px" }}
+              >
+                <canvas
+                  ref={geometryCanvasRef}
+                  className="absolute inset-0 w-full h-full"
+                ></canvas>
+
+                <div className="absolute bottom-4 right-4 z-10">
+                  <div className="bg-black/70 backdrop-blur-sm py-2 px-4 rounded-full text-sm text-cyan-400">
+                    Preview Mode
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 text-center">
+                <p className="text-gray-300 text-sm mb-4">
+                  Sacred geometry patterns help focus your mind and reduce
+                  mental chatter
+                </p>
+                <button
+                  onClick={scrollToPricing}
+                  className="inline-block text-cyan-400 hover:text-cyan-300 transition border border-cyan-800/50 hover:border-cyan-700 py-2 px-4 rounded-lg text-sm"
+                >
+                  Get Full Access <FaArrowRight className="inline-block ml-1" />
+                </button>
+              </div>
+            </div>
+
+            {/* Frequency Healing Preview */}
+            <div className="bg-gradient-to-b from-gray-900 to-black border border-gray-800 rounded-xl overflow-hidden transition duration-300 hover:border-cyan-800/50 hover:shadow-glow">
+              <div className="p-4 flex justify-between items-center border-b border-gray-800">
+                <h3 className="text-xl font-semibold flex items-center">
+                  <FaHeadphones className="mr-3 text-cyan-400" />
+                  Frequency Healing
+                </h3>
+              </div>
+
+              <div className="p-6 flex flex-col items-center">
+                <div className="w-32 h-32 rounded-full bg-gradient-to-r from-cyan-900/30 to-cyan-800/30 border border-cyan-800/50 flex items-center justify-center mb-4">
+                  <div className="w-24 h-24 rounded-full bg-black flex items-center justify-center pulse-slow">
+                    <button
+                      onClick={showFrequencyLimited}
+                      className="w-16 h-16 rounded-full bg-gradient-to-r from-cyan-500 to-cyan-600 flex items-center justify-center shadow-lg hover:scale-105 transition"
+                    >
+                      <FaPlay className="text-black text-xl ml-1" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="w-full max-w-xs mb-4 space-y-2">
+                  <div className="text-center text-white mb-1">
+                    Deep Sleep Frequency
+                  </div>
+                  <div className="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-full"
+                      style={{ width: "30%" }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>Demo</span>
+                    <span>Full Access</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 text-center">
+                <p className="text-gray-300 text-sm mb-4">
+                  Audio frequencies that harmonize your nervous system for deep
+                  relaxation
+                </p>
+                <button
+                  onClick={scrollToPricing}
+                  className="inline-block text-cyan-400 hover:text-cyan-300 transition border border-cyan-800/50 hover:border-cyan-700 py-2 px-4 rounded-lg text-sm"
+                >
+                  Get Full Access <FaArrowRight className="inline-block ml-1" />
+                </button>
+              </div>
+            </div>
+
+            {/* Guided Breathwork Preview */}
+            <div className="bg-gradient-to-b from-gray-900 to-black border border-gray-800 rounded-xl overflow-hidden transition duration-300 hover:border-cyan-800/50 hover:shadow-glow">
+              <div className="p-4 flex justify-between items-center border-b border-gray-800">
+                <h3 className="text-xl font-semibold flex items-center">
+                  <FaPeace className="mr-3 text-cyan-400" />
+                  Guided Breathwork
+                </h3>
+              </div>
+
+              <div className="p-6 flex flex-col items-center">
+                <div
+                  className={`w-32 h-32 rounded-full bg-gradient-to-r from-cyan-900/30 to-cyan-800/30 border border-cyan-800/50 flex items-center justify-center mb-6 transition-all duration-1000 ${
+                    isBreathingActive
+                      ? breathingPhase === "inhale"
+                        ? "transform scale-125"
+                        : breathingPhase === "exhale"
+                        ? "transform scale-75"
+                        : ""
+                      : ""
+                  }`}
+                >
+                  <div className="text-cyan-400 text-lg font-medium">
+                    {isBreathingActive
+                      ? breathingPhase === "inhale"
+                        ? "Inhale"
+                        : breathingPhase === "hold"
+                        ? "Hold"
+                        : "Exhale"
+                      : "Try Me"}
+                  </div>
+                </div>
+
+                <button
+                  onClick={
+                    isBreathingActive ? stopBreathingDemo : startBreathingDemo
+                  }
+                  className={`py-3 px-6 rounded-lg flex items-center justify-center transition-all font-medium ${
+                    isBreathingActive
+                      ? "bg-red-500/80 text-white"
+                      : "bg-gradient-to-r from-cyan-500/80 to-cyan-600/80 text-white"
+                  }`}
+                >
+                  <FaPlay
+                    className={`mr-2 ${isBreathingActive ? "hidden" : ""}`}
+                  />
+                  {isBreathingActive ? "Stop Demo" : "Start Demo"}
+                </button>
+              </div>
+
+              <div className="p-4 text-center">
+                <p className="text-gray-300 text-sm mb-4">
+                  Breathing patterns that activate your relaxation response in
+                  seconds
+                </p>
+                <button
+                  onClick={scrollToPricing}
+                  className="inline-block text-cyan-400 hover:text-cyan-300 transition border border-cyan-800/50 hover:border-cyan-700 py-2 px-4 rounded-lg text-sm"
+                >
+                  Get Full Access <FaArrowRight className="inline-block ml-1" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Demo limitations callout */}
+          <div className="bg-cyan-900/20 border border-cyan-800/30 rounded-lg p-6 text-center max-w-3xl mx-auto">
+            <div className="text-cyan-300 text-lg font-medium mb-2 flex items-center justify-center">
+              <FaExclamationCircle className="mr-2" /> These are limited demos
+            </div>
+            <p className="text-white mb-4">
+              The full Reset Portal includes premium frequencies, more breathing
+              patterns, additional visualizations, and precise timing calibrated
+              for optimal results.
+            </p>
+            <button
+              onClick={scrollToPricing}
+              className="btn-primary px-8 py-3 rounded-full text-base inline-block"
+            >
+              See All Features & Pricing{" "}
+              <FaArrowRight className="inline-block ml-1" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Premium Exclusive Features */}
+      <section className="py-16 px-4 md:px-16 bg-black">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <span className="inline-block bg-purple-900/40 text-purple-300 px-4 py-1 rounded-full text-sm font-medium mb-3">
+              <FaCrown className="inline-block mr-2" /> PREMIUM FEATURES
+            </span>
+            <h2 className="text-3xl font-bold mb-3">
+              <span className="gradient-purple">
+                Exclusive Premium Benefits
+              </span>
+            </h2>
+            <p className="text-gray-300 max-w-3xl mx-auto">
+              The Premium subscription unlocks these powerful features not
+              available in the basic plan
+            </p>
+          </div>
+
+          <div className="text-center grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            {premiumExclusiveFeatures.map((feature, index) => (
+              <div
+                key={index}
+                className="bg-gradient-to-b from-gray-900 to-black border border-gray-800 p-6 rounded-xl transition duration-300 hover:border-purple-800/50 hover:shadow-purple"
+              >
+                <div className="inline-flex justify-center items-center w-16 h-16 rounded-full bg-purple-900/20 border border-purple-900/40 mb-4">
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-bold mb-2 text-center">
+                  {feature.title}
+                </h3>
+                <p className="text-gray-400 text-center">
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-purple-900/10 border border-purple-800/30 rounded-xl p-6 flex flex-col sm:flex-row items-center justify-between">
+            <div className="mb-4 sm:mb-0 text-center sm:text-left">
+              <h3 className="text-xl font-bold text-white mb-1">
+                Ready to access premium features?
+              </h3>
+              <p className="text-purple-300 text-sm">
+                Try Premium free for 7 days
+              </p>
+            </div>
+            <button
+              onClick={scrollToPricing}
+              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-400 hover:to-purple-500 text-white py-3 px-6 rounded-lg flex items-center font-semibold shadow-lg"
+            >
+              <FaCrown className="mr-2" />
+              Start 7-Day Free Trial
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
-      <section className="py-16 px-4 md:px-16 bg-gradient-to-b from-gray-900 to-black">
-        <div className="max-w-5xl mx-auto">
+      <section className="py-16 px-4 md:px-16 bg-gray-950">
+        <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-3 gradient-text">
             What's Included In The Reset Portal
           </h2>
@@ -1043,7 +1328,7 @@ const ResetPortal = () => {
             You'll get instant access to all these powerful tools
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-12">
             {features.map((feature, index) => (
               <div
                 key={index}
@@ -1073,220 +1358,359 @@ const ResetPortal = () => {
         </div>
       </section>
 
-      {/* Pricing Section with Value Proposition */}
-      <section className="py-16 px-4 md:px-16 bg-black text-center">
-        <div className="max-w-5xl mx-auto">
-          {" "}
-          {/* Changed from max-w-4xl to max-w-5xl */}
+      {/* Pricing Section with Both Options */}
+      <section
+        ref={pricingSectionRef}
+        className="py-16 px-4 md:px-16 bg-black text-center"
+        id="pricing"
+      >
+        <div className="max-w-6xl mx-auto">
           <span className="inline-block mb-4 bg-gradient-to-r from-cyan-800 to-cyan-900 text-cyan-300 px-4 py-1 rounded-full text-sm font-medium">
-            <FaTag className="inline-block mr-1" /> One-Time Payment, Lifetime
-            Access
+            <FaTag className="inline-block mr-1" /> Special Offer - Limited Time
           </span>
-          <h2 className="text-3xl font-bold mb-10 gradient-text">
-            {" "}
-            {/* Increased margin-bottom from mb-6 to mb-10 */}A Fraction of the
-            Cost of Traditional Solutions
+          <h2 className="text-3xl font-bold mb-6 gradient-text">
+            Choose Your Access Level
           </h2>
-          <div className="grid md:grid-cols-3 gap-8 mb-8">
-            {" "}
-            {/* Changed gap-6 to gap-8 */}
-            {/* Card content remains the same, but adjust each card's padding */}
-            <div className="bg-gradient-to-b from-gray-900 to-black border border-gray-800 p-5 rounded-xl">
-              {" "}
-              {/* Changed p-6 to p-5 */}
-              <h3 className="text-xl font-bold text-red-400 mb-1">
-                Traditional Options
-              </h3>
-              <div className="text-4xl font-bold text-white mb-4">$300+</div>
-              <ul className="text-left text-gray-400 space-y-2 mb-6">
-                <li className="flex items-start">
-                  <FaCircle className="text-red-400 text-xs mt-1.5 mr-2" />
-                  <span>Sleep aids: $30-60/month</span>
-                </li>
-                <li className="flex items-start">
-                  <FaCircle className="text-red-400 text-xs mt-1.5 mr-2" />
-                  <span>Therapy session: $100-200/hour</span>
-                </li>
-                <li className="flex items-start">
-                  <FaCircle className="text-red-400 text-xs mt-1.5 mr-2" />
-                  <span>Wellness apps: $10-15/month</span>
-                </li>
-                <li className="flex items-start">
-                  <FaCircle className="text-red-400 text-xs mt-1.5 mr-2" />
-                  <span>Recurring costs add up over time</span>
-                </li>
-              </ul>
-            </div>
-            <div className="bg-gradient-to-b from-cyan-900/30 to-cyan-950/30 border-2 border-cyan-700/50 p-6 rounded-xl transform md:-translate-y-4 shadow-glow relative z-10">
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-cyan-400 to-cyan-500 text-black px-4 py-1 rounded-full text-sm font-bold">
-                BEST VALUE
-              </div>
-              <h3 className="text-xl font-bold text-cyan-300 mb-1">
-                Wellbands Reset Portal
-              </h3>
-              <div className="mb-4">
-                <span className="text-gray-400 text-lg line-through">$348</span>
-                <div className="text-4xl font-bold text-white">$17</div>
-                <div className="text-cyan-400 text-sm mt-1">
-                  One-time payment
-                </div>
-              </div>
-              <ul className="text-left text-white space-y-3 mb-6">
-                {pricingBenefits.map((benefit, index) => (
-                  <li key={index} className="flex items-start">
-                    <FaCheckCircle className="text-cyan-400 mt-1 mr-2" />
-                    <span>{benefit}</span>
-                  </li>
-                ))}
-              </ul>
-              <a
-                href="https://buy.stripe.com/3csbMkcsJc2V4mY8wx"
-                className="btn-primary w-full py-4 rounded-lg text-base inline-block pulse shadow-lg"
-              >
-                Get Instant Access <FaKey className="inline-block ml-1" />
-              </a>
-              <div className="mt-3 text-cyan-300 text-sm flex justify-center items-center">
-                <FaShieldAlt className="mr-2" /> 30-Day Money-Back Guarantee
-              </div>
-            </div>
-            <div className="bg-gradient-to-b from-gray-900 to-black border border-gray-800 p-6 rounded-xl">
-              <h3 className="text-xl font-bold text-amber-400 mb-1">
-                Professional Guidance
-              </h3>
-              <div className="text-4xl font-bold text-white mb-4">$1000+</div>
-              <ul className="text-left text-gray-400 space-y-2 mb-6">
-                <li className="flex items-start">
-                  <FaCircle className="text-amber-400 text-xs mt-1.5 mr-2" />
-                  <span>Sleep specialist: $200-500</span>
-                </li>
-                <li className="flex items-start">
-                  <FaCircle className="text-amber-400 text-xs mt-1.5 mr-2" />
-                  <span>Wellness retreat: $500-2000</span>
-                </li>
-                <li className="flex items-start">
-                  <FaCircle className="text-amber-400 text-xs mt-1.5 mr-2" />
-                  <span>Stress management course: $300-800</span>
-                </li>
-                <li className="flex items-start">
-                  <FaCircle className="text-amber-400 text-xs mt-1.5 mr-2" />
-                  <span>Time away from work required</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-          {/* ROI highlight */}
-          <div className="bg-gradient-to-r from-cyan-900/20 to-cyan-800/20 rounded-lg p-6 border border-cyan-800/30 max-w-3xl mx-auto">
-            <h3 className="text-xl font-semibold mb-3 text-white">
-              The Real Return on Investment
-            </h3>
-            <div className="grid md:grid-cols-3 gap-4 text-center">
-              <div>
-                <div className="text-4xl font-bold text-cyan-400 mb-1">$17</div>
-                <p className="text-gray-300">One-time investment</p>
-              </div>
-              <div>
-                <div className="text-4xl font-bold text-cyan-400 mb-1">
-                  5 min
-                </div>
-                <p className="text-gray-300">Daily practice</p>
-              </div>
-              <div>
-                <div className="text-4xl font-bold text-cyan-400 mb-1">∞</div>
-                <p className="text-gray-300">Lifetime benefits</p>
-              </div>
-            </div>
-            <div className="mt-6 text-white">
-              <p>
-                Can you really put a price on better sleep, mental clarity, and
-                emotional balance?
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+          <p className="text-center text-gray-300 mb-10 max-w-3xl mx-auto">
+            Select the plan that's perfect for your needs and start experiencing
+            the benefits today
+          </p>
 
-      {/* CTA Section with Countdown */}
-      <section className="py-16 px-4 md:px-16 bg-gradient-to-b from-black to-gray-900 text-center">
-        <div className="max-w-3xl mx-auto">
-          {/* Countdown Timer */}
-          <div className="mb-8 bg-gradient-to-r from-gray-900 to-black p-6 rounded-xl border border-cyan-900/50 shadow-lg">
-            <div className="text-cyan-400 text-sm uppercase tracking-wide font-semibold mb-3">
-              SPECIAL OFFER EXPIRES IN:
-            </div>
-            <div className="flex justify-center gap-4">
-              <div className="text-center">
-                <div className="text-3xl font-bold bg-black px-4 py-3 rounded-lg border border-cyan-800 min-w-[60px]">
-                  {formattedTime.days}
-                </div>
-                <div className="text-xs mt-1 text-gray-400">DAYS</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold bg-black px-4 py-3 rounded-lg border border-cyan-800 min-w-[60px]">
-                  {formattedTime.hours}
-                </div>
-                <div className="text-xs mt-1 text-gray-400">HOURS</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold bg-black px-4 py-3 rounded-lg border border-cyan-800 min-w-[60px]">
-                  {formattedTime.minutes}
-                </div>
-                <div className="text-xs mt-1 text-gray-400">MINUTES</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold bg-black px-4 py-3 rounded-lg border border-cyan-800 text-red-400 min-w-[60px]">
-                  {formattedTime.seconds}
-                </div>
-                <div className="text-xs mt-1 text-gray-400">SECONDS</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Final CTA */}
-          <div className="mb-10">
-            <h2 className="text-3xl font-bold mb-4 gradient-text">
-              Ready to Transform Your Mental & Emotional State?
-            </h2>
-            <p className="text-xl text-gray-300 mb-6">
-              Join thousands who have already discovered the power of the Reset
-              Portal
-            </p>
-
-            <div className="flex justify-center items-center gap-6 mb-6">
-              <div className="text-gray-400 text-2xl line-through">$348</div>
-              <div className="text-3xl font-bold text-white">
-                Only <span className="text-cyan-400">$17</span> Today
-              </div>
-            </div>
-
-            <a
-              href="https://buy.stripe.com/3csbMkcsJc2V4mY8wx"
-              className="btn-primary px-10 py-4 rounded-full text-lg inline-block pulse shadow-lg mb-5"
+          <div className="grid lg:grid-cols-2 gap-8 mb-12">
+            {/* Basic Plan (One-time payment) */}
+            <div
+              onClick={() => setSelectedPlan("basic")}
+              className={`cursor-pointer bg-gradient-to-b from-gray-900 to-black border ${
+                selectedPlan === "basic" ? "border-cyan-600" : "border-gray-800"
+              } rounded-xl overflow-hidden transition-all duration-300 transform ${
+                selectedPlan === "basic" ? "scale-105 shadow-glow" : ""
+              }`}
             >
-              Get Instant Access <FaKey className="inline-block ml-2" />
-            </a>
+              <div className="p-6 border-b border-gray-800">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <div
+                      className={`w-10 h-10 rounded-full ${
+                        selectedPlan === "basic"
+                          ? "bg-cyan-500 text-black"
+                          : "bg-gray-800 text-gray-500"
+                      } flex items-center justify-center mr-3`}
+                    >
+                      <FaKey className="text-lg" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-white">
+                        Basic Access
+                      </h3>
+                      <span className="text-sm text-gray-400">
+                        One-time payment
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedPlan("basic")}
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      selectedPlan === "basic"
+                        ? "border-cyan-500 bg-cyan-500/20"
+                        : "border-gray-600"
+                    }`}
+                  >
+                    {selectedPlan === "basic" && (
+                      <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
+                    )}
+                  </button>
+                </div>
+              </div>
 
-            <div className="flex flex-wrap justify-center gap-8 mt-4">
-              <div className="flex items-center text-sm text-gray-300">
-                <FaShieldAlt className="mr-2 text-cyan-400" /> Secure Checkout
+              <div className="p-6 text-center">
+                <div className="flex items-end justify-center gap-2 mb-4">
+                  <div className="text-gray-400 line-through text-lg">$48</div>
+                  <div className="text-4xl font-bold text-white">$17</div>
+                  <div className="text-gray-400 text-sm self-end">one time</div>
+                </div>
+
+                <ul className="text-left space-y-3 mb-6">
+                  {basicPlanBenefits.map((benefit, index) => (
+                    <li key={index} className="flex items-start">
+                      <FaCheckCircle className="text-cyan-400 mt-1 mr-2 flex-shrink-0" />
+                      <span className="text-gray-300">{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  onClick={() => handlePurchase("basic")}
+                  disabled={hasPurchasedBasic}
+                  className={`w-full py-3 px-4 rounded-lg flex items-center justify-center transition-all
+    ${
+      hasPurchasedBasic
+        ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+        : selectedPlan === "basic"
+        ? "bg-gradient-to-r from-cyan-500 to-cyan-600 text-white"
+        : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+    }
+  `}
+                >
+                  <FaKey className="mr-2" />
+                  {hasPurchasedBasic
+                    ? "Already Purchased"
+                    : "Get One-Time Access"}
+                </button>
+
+                {selectedPlan === "basic" && checkoutError && (
+                  <div className="mt-4 text-red-400">{checkoutError}</div>
+                )}
+
+                <div className="mt-4 text-gray-500 text-sm">
+                  Secure checkout
+                </div>
               </div>
-              <div className="flex items-center text-sm text-gray-300">
-                <FaCheckCircle className="mr-2 text-cyan-400" /> Instant Access
+            </div>
+
+            {/* Premium Plan (Subscription) */}
+            <div
+              onClick={() => setSelectedPlan("premium")}
+              className={`cursor-pointer bg-gradient-to-b from-gray-900 to-black border ${
+                selectedPlan === "premium"
+                  ? "border-purple-600"
+                  : "border-gray-800"
+              } rounded-xl overflow-hidden transition-all duration-300 transform ${
+                selectedPlan === "premium" ? "scale-105 shadow-premium" : ""
+              } relative`}
+            >
+              {/* Fix for RECOMMENDED badge - adjusted positioning and added padding to ensure visibility */}
+              <div
+                className="absolute top-[52px] right-[60px] transform -translate-y-1/2"
+                style={{ zIndex: 10 }}
+              >
+                <div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white px-4 py-1 rounded-full text-sm font-bold">
+                  RECOMMENDED
+                </div>
               </div>
-              <div className="flex items-center text-sm text-gray-300">
-                <FaMoneyBillWave className="mr-2 text-cyan-400" /> 30-Day
-                Money-Back Guarantee
+
+              <div className="p-6 border-b border-gray-800">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <div
+                      className={`w-10 h-10 rounded-full ${
+                        selectedPlan === "premium"
+                          ? "bg-purple-500 text-white"
+                          : "bg-gray-800 text-gray-500"
+                      } flex items-center justify-center mr-3`}
+                    >
+                      <FaCrown className="text-lg" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-white">
+                        Premium Access
+                      </h3>
+                      <span className="text-sm text-gray-400">
+                        Monthly subscription
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedPlan("premium")}
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      selectedPlan === "premium"
+                        ? "border-purple-500 bg-purple-500/20"
+                        : "border-gray-600"
+                    }`}
+                  >
+                    {selectedPlan === "premium" && (
+                      <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                    )}
+                  </button>
+                </div>
               </div>
+
+              <div className="p-6 text-center">
+                <div className="flex items-end justify-center gap-2 mb-2">
+                  <div className="text-4xl font-bold text-white">$5.99</div>
+                  <div className="text-gray-400 text-sm self-end">
+                    per month
+                  </div>
+                </div>
+
+                <div className="mb-4 bg-purple-900/20 text-purple-300 py-2 px-3 rounded-lg inline-block text-sm font-medium">
+                  <FaHandshake className="inline-block mr-1" /> 7-Day Free Trial
+                </div>
+
+                <ul className="text-left space-y-3 mb-6">
+                  {premiumPlanBenefits.map((benefit, index) => (
+                    <li key={index} className="flex items-start">
+                      <FaCheckCircle className="text-purple-400 mt-1 mr-2 flex-shrink-0" />
+                      <span className="text-gray-300">{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  onClick={() => {
+                    // if logged in & have an active or trial sub → manage it
+                    if (
+                      token &&
+                      (userSubscriptionStatus === "active" ||
+                        userSubscriptionStatus === "trial")
+                    ) {
+                      handleManageSubscription();
+                    } else {
+                      handlePurchase("premium");
+                    }
+                  }}
+                  disabled={isLoadingSubscription}
+                  className={`
+    w-full py-3 px-4 rounded-lg flex items-center justify-center transition-all
+    ${
+      token
+        ? userSubscriptionStatus === "active"
+          ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+          : userSubscriptionStatus === "trial"
+          ? "bg-purple-600 text-white cursor-default"
+          : "bg-gradient-to-r from-purple-500 to-purple-600 text-white"
+        : "bg-gradient-to-r from-purple-500 to-purple-600 text-white"
+    }
+  `}
+                >
+                  <FaCrown className="mr-2" />
+                  {token
+                    ? userSubscriptionStatus === "active"
+                      ? "Manage Subscription"
+                      : userSubscriptionStatus === "trial"
+                      ? "Active Trial"
+                      : "Start Free 7-Day Trial"
+                    : "Start Free 7-Day Trial"}
+                </button>
+
+                {selectedPlan === "premium" && checkoutError && (
+                  <div className="mt-4 text-red-400">{checkoutError}</div>
+                )}
+
+                <div className="mt-4 text-gray-500 text-sm">Cancel anytime</div>
+              </div>
+
+              {/* Inline error display */}
+              {checkoutError && (
+                <div className="mt-4 mb-6 text-center text-red-400">
+                  {checkoutError}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Final reassurance */}
-          {/* <div className="max-w-2xl mx-auto text-center">
-            <p className="text-gray-400 text-sm">
-              Your satisfaction is our priority. If you don't experience
-              positive results within 30 days, simply email us for a full
-              refund. No questions asked.
-            </p>
-          </div> */}
+          {/* Comparison table */}
+          <div className="max-w-6xl mx-auto mb-14 overflow-hidden rounded-xl border border-gray-800">
+            <div className="py-4 bg-gradient-to-r from-gray-900 to-gray-950 text-center border-b border-gray-800">
+              <h3 className="text-xl font-bold text-white">
+                Feature Comparison
+              </h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-black">
+                    <th className="text-left py-4 px-6 text-gray-300">
+                      Feature
+                    </th>
+                    <th className="text-center py-4 px-6 text-cyan-400 w-1/4">
+                      Basic
+                    </th>
+                    <th className="text-center py-4 px-6 text-purple-400 w-1/4">
+                      Premium
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800">
+                  <tr className="bg-gray-950">
+                    <td className="py-3 px-6 text-gray-300">
+                      Standard Frequencies
+                    </td>
+                    <td className="text-center py-3 px-6">
+                      <FaCheck className="inline-block text-cyan-400" />
+                    </td>
+                    <td className="text-center py-3 px-6">
+                      <FaCheck className="inline-block text-purple-400" />
+                    </td>
+                  </tr>
+                  <tr className="bg-black">
+                    <td className="py-3 px-6 text-gray-300">
+                      Basic Breathwork Patterns
+                    </td>
+                    <td className="text-center py-3 px-6">
+                      <FaCheck className="inline-block text-cyan-400" />
+                    </td>
+                    <td className="text-center py-3 px-6">
+                      <FaCheck className="inline-block text-purple-400" />
+                    </td>
+                  </tr>
+                  <tr className="bg-gray-950">
+                    <td className="py-3 px-6 text-gray-300">Calming Visuals</td>
+                    <td className="text-center py-3 px-6">
+                      <FaCheck className="inline-block text-cyan-400" />
+                    </td>
+                    <td className="text-center py-3 px-6">
+                      <FaCheck className="inline-block text-purple-400" />
+                    </td>
+                  </tr>
+                  <tr className="bg-black">
+                    <td className="py-3 px-6 text-gray-300">
+                      Declassified CIA Frequencies
+                    </td>
+                    <td className="text-center py-3 px-6">
+                      <FaCircle className="inline-block text-gray-700 text-xs" />
+                    </td>
+                    <td className="text-center py-3 px-6">
+                      <FaCheck className="inline-block text-purple-400" />
+                    </td>
+                  </tr>
+                  <tr className="bg-gray-950">
+                    <td className="py-3 px-6 text-gray-300">
+                      Advanced Remote Viewing Tools
+                    </td>
+                    <td className="text-center py-3 px-6">
+                      <FaCircle className="inline-block text-gray-700 text-xs" />
+                    </td>
+                    <td className="text-center py-3 px-6">
+                      <FaCheck className="inline-block text-purple-400" />
+                    </td>
+                  </tr>
+                  <tr className="bg-black">
+                    <td className="py-3 px-6 text-gray-300">
+                      Monthly Updates & New Tools
+                    </td>
+                    <td className="text-center py-3 px-6">
+                      <FaCircle className="inline-block text-gray-700 text-xs" />
+                    </td>
+                    <td className="text-center py-3 px-6">
+                      <FaCheck className="inline-block text-purple-400" />
+                    </td>
+                  </tr>
+                  <tr className="bg-gray-950">
+                    <td className="py-3 px-6 text-gray-300">
+                      Priority Support
+                    </td>
+                    <td className="text-center py-3 px-6">
+                      <FaCircle className="inline-block text-gray-700 text-xs" />
+                    </td>
+                    <td className="text-center py-3 px-6">
+                      <FaCheck className="inline-block text-purple-400" />
+                    </td>
+                  </tr>
+                  <tr className="bg-black">
+                    <td className="py-3 px-6 text-gray-300">
+                      Custom Tool Development
+                    </td>
+                    <td className="text-center py-3 px-6">
+                      <FaCircle className="inline-block text-gray-700 text-xs" />
+                    </td>
+                    <td className="text-center py-3 px-6">
+                      <FaCheck className="inline-block text-purple-400" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1305,12 +1729,15 @@ const ResetPortal = () => {
               >
                 Close
               </button>
-              <a
-                href="https://buy.stripe.com/3csbMkcsJc2V4mY8wx"
+              <button
+                onClick={() => {
+                  setShowLimitedFeatureModal(false);
+                  scrollToPricing();
+                }}
                 className="flex-1 py-2 px-4 rounded bg-gradient-to-r from-cyan-500 to-cyan-600 text-black font-semibold hover:from-cyan-400 hover:to-cyan-500"
               >
-                Get Full Access
-              </a>
+                See Pricing
+              </button>
             </div>
           </div>
         </div>
@@ -1360,6 +1787,18 @@ const ResetPortal = () => {
           color: transparent;
         }
 
+        .gradient-purple {
+          background: linear-gradient(
+            90deg,
+            #a855f7 0%,
+            #bf7af7 50%,
+            #d4a6f7 100%
+          );
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+        }
+
         /* Button styling */
         .btn-primary {
           background: linear-gradient(90deg, #00d9ff 0%, #33dfff 100%);
@@ -1400,6 +1839,10 @@ const ResetPortal = () => {
 
         .shadow-glow {
           box-shadow: 0 0 30px rgba(0, 217, 255, 0.15);
+        }
+
+        .shadow-premium {
+          box-shadow: 0 0 30px rgba(168, 85, 247, 0.15);
         }
 
         /* Video aspect ratio container */

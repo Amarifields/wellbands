@@ -27,6 +27,7 @@ export default function PurchaseSuccessPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isValidPurchase, setIsValidPurchase] = useState(true);
   const [isChecking, setIsChecking] = useState(true);
+  const [sessionId, setSessionId] = useState(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,23 +36,24 @@ export default function PurchaseSuccessPage() {
   // 1️⃣ On mount: grab session_id & email from URL, then immediately clean URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const sessionId = params.get("session_id");
-    const emailFromUrl = params.get("email");
-    const priceParam = parseFloat(params.get("price")); // optional if you're passing this
-    const price = priceParam || 17.0; // fallback to default value if not passed
-
-    if (!sessionId) {
+    const session = params.get("session_id");
+    if (!session) {
       setIsValidPurchase(false);
-    } else {
-      if (emailFromUrl) setEmail(emailFromUrl);
+      return;
+    }
+    setSessionId(session);
+    const emailFromUrl = params.get("email");
+    if (emailFromUrl && emailFromUrl !== "undefined") {
+      setEmail(emailFromUrl);
+    }
+    const priceParam = parseFloat(params.get("price")) || 17.0;
 
-      // ✅ Fire TikTok Purchase event with proper value + currency
-      if (window.ttq) {
-        window.ttq.track("Purchase", {
-          value: 17.0,
-          currency: "USD",
-        });
-      }
+    // ✅ Fire TikTok Purchase event with proper value + currency
+    if (window.ttq) {
+      window.ttq.track("Purchase", {
+        value: 17.0,
+        currency: "USD",
+      });
     }
 
     // ✅ Strip query params (clean up the URL without reloading the page)
@@ -79,11 +81,32 @@ export default function PurchaseSuccessPage() {
     setIsLoading(true);
 
     try {
-      const resp = await axios.post(`${API_URL}/api/auth/register`, {
+      const { data } = await axios.post(`${API_URL}/api/auth/register`, {
         email,
         password,
+        sessionId,
       });
-      login(resp.data.token);
+
+      // 1️⃣ Immediately store the initial tokens so we can call refresh
+      login(data.token, data.refreshToken, data.expiresIn);
+
+      // 2️⃣ Now hit your refresh endpoint to get a *new* idToken with the custom claim
+      const refreshRes = await axios.post(`${API_URL}/api/auth/refresh-token`, {
+        refreshToken: data.refreshToken,
+      });
+
+      // 3️⃣ Overwrite your AuthContext with the *fresh* token
+      login(
+        refreshRes.data.token,
+        refreshRes.data.refreshToken,
+        refreshRes.data.expiresIn
+      );
+
+      const validateRes = await axios.get(`${API_URL}/api/auth/validate`, {
+        headers: { Authorization: `Bearer ${refreshRes.data.token}` },
+      });
+      console.log("🔥 plan after purchase:", validateRes.data.plan);
+
       setSuccess(true);
       setTimeout(() => navigate("/reset", { replace: true }), 3000);
     } catch (err) {

@@ -93,7 +93,7 @@ const Footer = () => {
             </div>
 
             <div className="footer-link-column">
-              <h4 className="footer-heading">Connect</h4>
+              <h4 className="footer-heading">Contact</h4>
               <div className="social-icons">
                 <a
                   href="https://www.twitter.com/wellbandshealth"
@@ -114,7 +114,7 @@ const Footer = () => {
                   <FaInstagram />
                 </a>
                 <a
-                  href="https://www.linkedin.com/company/wellbandshealth"
+                  href="https://www.linkedin.com/company/wellbands"
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="LinkedIn"
@@ -128,6 +128,7 @@ const Footer = () => {
                   rel="noopener noreferrer"
                   aria-label="Facebook"
                   className="social-icon"
+                  disabled
                 >
                   <FaFacebook />
                 </a>

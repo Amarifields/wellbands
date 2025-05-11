@@ -161,6 +161,16 @@ function LoginPage() {
           rememberMe
         );
 
+        const validateResp = await API.get("/api/auth/validate", {
+          headers: { Authorization: `Bearer ${result.token}` },
+        });
+
+        console.log("✅ Current plan:", validateResp.data.plan);
+        // …if you want to save it in context, your AuthContext.login could accept it
+
+        // 4) now navigate
+        navigate("/reset", { replace: true });
+
         if (!loginSuccess) {
           throw new Error("Failed to process login token");
         }

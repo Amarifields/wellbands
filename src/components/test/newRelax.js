@@ -14,6 +14,8 @@ const RelaxPortal = () => {
   const [userEmail, setUserEmail] = useState("");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const navigate = useNavigate();
+  const [plan, setPlan] = useState("basic");
+  const [trialUsed, setTrialUsed] = useState(false);
   const userMenuRef = useRef(null);
   const wellbandsHarmonizerRef = useRef(null);
   const { token, logout } = useContext(AuthContext);
@@ -30,9 +32,7 @@ const RelaxPortal = () => {
     }
   };
 
-  // fetch user + portal data
   useEffect(() => {
-    // if we lost our token, bail out and send back to login
     if (!token) {
       logout();
       return;
@@ -42,9 +42,12 @@ const RelaxPortal = () => {
       .get(`${API_URL}/api/reset`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then((res) => setUserEmail(res.data.email))
+      .then((res) => {
+        setUserEmail(res.data.email);
+        setPlan(res.data.plan);
+        setTrialUsed(res.data.trialUsed);
+      })
       .catch(() => {
-        // any failure means we should kick them back to login
         logout();
       })
       .finally(() => setIsLoading(false));
@@ -99,7 +102,7 @@ const RelaxPortal = () => {
             </div>
 
             {/* Secondary Tools Row - 3 Column Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 -mx-4 md:mx-0">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 -mx-4 md:mx-0">
               <BreathworkGuide />
 
               <ThoughtReleaseJournal />
