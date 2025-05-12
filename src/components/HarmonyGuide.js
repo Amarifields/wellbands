@@ -790,7 +790,7 @@ const ResetPortal = () => {
                     <FaPlay className="text-white text-3xl" />
                   </div>
                   <span className="mt-4 text-white text-lg font-medium">
-                    Watch How Our Digital Tools Work (1 min)
+                    How Our Digital Tools Work (1 min)
                   </span>
                 </div>
               )}
@@ -1402,7 +1402,7 @@ const ResetPortal = () => {
                       <h3 className="text-2xl font-bold text-white">
                         Basic Access
                       </h3>
-                      <span className="text-sm text-gray-400">
+                      <span className="text-sm text-gray-400 block pl-0">
                         One-time payment
                       </span>
                     </div>
@@ -1479,18 +1479,23 @@ const ResetPortal = () => {
               } relative`}
             >
               {/* Fix for RECOMMENDED badge - adjusted positioning and added padding to ensure visibility */}
-              <div
-                className="absolute top-[52px] right-[60px] transform -translate-y-1/2"
-                style={{ zIndex: 10 }}
-              >
-                <div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white px-4 py-1 rounded-full text-sm font-bold">
-                  RECOMMENDED
-                </div>
-              </div>
+               {/* desktop badge */}
+ <div className="hidden md:block absolute top-[52px] right-[60px] transform -translate-y-1/2 z-10">
+   <div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white px-4 py-1 rounded-full text-sm font-bold">
+     RECOMMENDED
+   </div>
+ </div>
+
+ {/* mobile badge below header */}
+ <div className="md:hidden mt-2 flex justify-center">
+   <div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white px-4 py-1 rounded-full text-sm font-bold">
+     RECOMMENDED
+   </div>
+ </div>
 
               <div className="p-6 border-b border-gray-800">
                 <div className="flex justify-between items-center">
-                  <div className="flex items-center">
+                <div className="flex items-start space-x-4">
                     <div
                       className={`w-10 h-10 rounded-full ${
                         selectedPlan === "premium"
@@ -1504,7 +1509,7 @@ const ResetPortal = () => {
                       <h3 className="text-2xl font-bold text-white">
                         Premium Access
                       </h3>
-                      <span className="text-sm text-gray-400">
+                      <span className="text-sm text-gray-400 block pl-0">
                         Monthly subscription
                       </span>
                     </div>

@@ -99,22 +99,16 @@ const BreathworkGuide = () => {
   const initializedRef = useRef(false);
 
   const unlockAudioContext = async () => {
-    const ctx = audioRef.current;
-    if (!ctx) return;
-    // 1) resume if still suspended
-    if (ctx.state === "suspended") {
-      try {
-        await ctx.resume();
-      } catch (e) {
-        console.warn("AudioContext resume failed:", e);
-      }
+    if (!audioRef.current) {
+      // create _inside_ the user gesture
+      audioRef.current =
+        new (window.AudioContext || window.webkitAudioContext)();
     }
-    // 2) play a single-sample silent buffer to unlock the device speaker
-    const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-    src.connect(ctx.destination);
-    src.start(0);
+    try {
+      await audioRef.current.resume();
+    } catch (err) {
+      console.warn("Failed to resume AudioContext:", err);
+    }
   };
 
   // Update refs when state changes
@@ -135,36 +129,7 @@ const BreathworkGuide = () => {
   }, [cycleCount]);
 
   // Set up audio context for sound cues
-  useEffect(() => {
-    try {
-      audioRef.current = new (window.AudioContext ||
-        window.webkitAudioContext)();
-
-      // Add event listeners to initialize audio
-      document.addEventListener("click", initializeAudio, { once: true });
-      document.addEventListener("touchstart", initializeAudio, { once: true });
-      document.addEventListener("keydown", initializeAudio, { once: true });
-
-      // Try initializing immediately
-      initializeAudio();
-    } catch (e) {
-      console.warn("Web Audio API not supported in this browser");
-    }
-
-    return () => {
-      document.removeEventListener("click", initializeAudio);
-      document.removeEventListener("touchstart", initializeAudio);
-      document.removeEventListener("keydown", initializeAudio);
-
-      if (audioRef.current) {
-        try {
-          audioRef.current.close().catch(() => {});
-        } catch (e) {
-          console.warn("Error closing audio context:", e);
-        }
-      }
-    };
-  }, []);
+ 
 
   // Play audio tone for phase transitions
   const playTone = async (frequency, duration = 0.2, volume = 0.2) => {
@@ -312,8 +277,8 @@ const BreathworkGuide = () => {
   // Start the breathing session
   const start = async () => {
     if (active) return;
-    // 🔑 first thing: unlock on mobile/tablet
-    await unlockAudioContext();
+  // 🔑 Create & unlock the AudioContext inside this very click
+  await unlockAudioContext();
 
     // your existing initializeAudio() can stay or be dropped now
     initializeAudio();
